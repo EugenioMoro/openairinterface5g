@@ -164,7 +164,7 @@ void phy_procedures_gNB_TX(PHY_VARS_gNB *gNB,
 	gNB->Mod_id,frame,slot,pdcch_pdu_id,ul_pdcch_pdu_id);
 
   if (pdcch_pdu_id >= 0 || ul_pdcch_pdu_id >= 0) {
-    if (slot>0) LOG_D(PHY, "[gNB %d] Frame %d slot %d Calling nr_generate_dci_top (number of UL/DL DCI %d/%d)\n",
+    LOG_D(PHY, "[gNB %d] Frame %d slot %d Calling nr_generate_dci_top (number of UL/DL DCI %d/%d)\n",
 	  gNB->Mod_id, frame, slot,
 	  gNB->ul_pdcch_pdu[ul_pdcch_pdu_id].pdcch_pdu.pdcch_pdu.pdcch_pdu_rel15.numDlDci,
 	  gNB->pdcch_pdu[pdcch_pdu_id].pdcch_pdu.pdcch_pdu_rel15.numDlDci);
@@ -413,6 +413,7 @@ void nr_fill_indication(PHY_VARS_gNB *gNB, int frame, int slot_rx, int ULSCH_id,
   int sync_pos;
   NR_gNB_ULSCH_t                       *ulsch                 = gNB->ulsch[ULSCH_id][0];
   NR_UL_gNB_HARQ_t                     *harq_process          = ulsch->harq_processes[harq_pid];
+  NR_gNB_SCH_STATS_t *stats=get_ulsch_stats(gNB,ulsch);
 
   nfapi_nr_pusch_pdu_t *pusch_pdu = &harq_process->ulsch_pdu;
 
@@ -427,6 +428,8 @@ void nr_fill_indication(PHY_VARS_gNB *gNB, int frame, int slot_rx, int ULSCH_id,
     sync_pos_rounded = sync_pos + (bw_scaling / 2) - 1;
   else
     sync_pos_rounded = sync_pos - (bw_scaling / 2) - 1;
+  if (stats) stats->sync_pos = sync_pos;
+
   timing_advance_update = sync_pos_rounded / bw_scaling;
 
   // put timing advance command in 0..63 range
