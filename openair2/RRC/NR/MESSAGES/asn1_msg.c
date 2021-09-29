@@ -1169,7 +1169,7 @@ void fill_initial_SpCellConfig(rnti_t rnti,
 
 
 
-  if (0) {
+  if (1) {
   // configure Scheduling request
   // 40 slot period 
     pucch_Config->schedulingRequestResourceToAddModList = calloc(1,sizeof(*pucch_Config->schedulingRequestResourceToAddModList));
