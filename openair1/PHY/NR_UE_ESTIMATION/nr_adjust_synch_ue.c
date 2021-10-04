@@ -71,8 +71,8 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
     }
   }
 
-  if (max_pos > frame_parms->ofdm_symbol_size/2)
-    max_pos = max_pos - frame_parms->ofdm_symbol_size;
+  //if (max_pos > frame_parms->ofdm_symbol_size/2)
+  //  max_pos = max_pos - frame_parms->ofdm_symbol_size;
 
   // filter position to reduce jitter
   if (clear == 1)
@@ -83,7 +83,8 @@ void nr_adjust_synch_ue(NR_DL_FRAME_PARMS *frame_parms,
   // do not filter to have proactive timing adjustment
   //max_pos_fil = max_pos;
 
-  int diff = max_pos_fil - sync_pos;
+  //int diff = max_pos_fil - sync_pos;
+  int diff = max_pos_fil - (frame_parms->nb_prefix_samples>>3);
 
   if (frame_parms->freq_range==nr_FR2) 
     sync_offset = 2;
