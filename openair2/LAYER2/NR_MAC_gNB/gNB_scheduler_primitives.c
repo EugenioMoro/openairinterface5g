@@ -1198,7 +1198,7 @@ void fill_dci_pdu_rel15(const NR_ServingCellConfigCommon_t *scc,
       // indicating a DL DCI format 1bit
       pos++;
       *dci_pdu |= ((uint64_t)1) << (dci_size - pos);
-      LOG_I(NR_MAC,
+      LOG_D(NR_MAC,
             "DCI1_0 (size %d): Format indicator %d (%d bits) N_RB_BWP %d => %d (0x%lx)\n",
             dci_size,
             dci_pdu_rel15->format_indicator,
@@ -1937,11 +1937,13 @@ int add_new_nr_ue(module_id_t mod_idP, rnti_t rntiP, NR_CellGroupConfig_t *CellG
     if (!get_softmodem_params()->phy_test && !get_softmodem_params()->do_ra && !get_softmodem_params()->sa) {
       sched_ctrl->lcid_mask = 1<<DL_SCH_LCID_DTCH;
     }
+    if (!get_softmodem_params()->phy_test && !get_softmodem_params()->sa) {
+      sched_ctrl->maxL = 4;
+    }
     sched_ctrl->ta_frame = 0;
     sched_ctrl->ta_update = 31;
     sched_ctrl->ta_apply = false;
     sched_ctrl->ul_rssi = 0;
-    sched_ctrl->maxL = 4;
     sched_ctrl->pucch_consecutive_dtx_cnt = 0;
     sched_ctrl->pusch_consecutive_dtx_cnt = 0;
     sched_ctrl->ul_failure                = 0;
@@ -2083,8 +2085,8 @@ uint8_t nr_get_tpc(int target, uint8_t cqi, int incr) {
   // al values passed to this function are x10
   int snrx10 = (cqi*5) - 640;
   if (snrx10 > target + incr) return 0; // decrease 1dB
-  if (snrx10 < target - incr) return 2; // increase 1dB
   if (snrx10 < target - (3*incr)) return 3; // increase 3dB
+  if (snrx10 < target - incr) return 2; // increase 1dB
   LOG_D(NR_MAC,"tpc : target %d, snrx10 %d\n",target,snrx10);
   return 1; // no change
 }
