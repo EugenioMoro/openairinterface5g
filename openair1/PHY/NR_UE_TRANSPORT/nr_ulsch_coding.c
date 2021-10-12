@@ -269,9 +269,12 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
   LOG_D(PHY,"ulsch coding A %d G %d mod_order %d\n", A,G, mod_order);
   LOG_D(PHY,"harq_pid %d harq_process->ndi %d, pusch_data.new_data_indicator %d\n",
         harq_pid,harq_process->ndi,harq_process->pusch_pdu.pusch_data.new_data_indicator);
-
-  if (harq_process->first_tx == 1 ||
-      harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
+  uint8_t first_tx=harq_process->first_tx;
+  uint8_t ndi=harq_process->ndi;
+  uint8_t new_data_indicator=harq_process->pusch_pdu.pusch_data.new_data_indicator;
+  //if (harq_process->first_tx == 1 ||
+  //    harq_process->ndi != harq_process->pusch_pdu.pusch_data.new_data_indicator) {  // this is a new packet
+  { // todo
 #ifdef DEBUG_ULSCH_CODING
   printf("encoding thinks this is a new packet \n");
 #endif
@@ -441,7 +444,15 @@ int nr_ulsch_encoding(PHY_VARS_NR_UE *ue,
 ///////////
 
     E = nr_get_E(G, harq_process->C, mod_order, harq_process->pusch_pdu.nrOfLayers, r);
-
+    uint32_t Foffset = Kr-F-2*(*pz);
+    if (Foffset > E)
+      LOG_I(PHY,"Rate Matching, h %p %d TBS %d codeseg %d G %u, C %u Kr*3 %d, m %d, nb_rb %d, rvidx %d Nl %d E %d F %d Kr %d Z %d %d Foffset %d) first_tx %d ndi %d pusch_ndi %d\n",
+          &(harq_process->pusch_pdu), harq_pid, harq_process->pusch_pdu.pusch_data.tb_size,
+	  r,
+	  G,harq_process->C,
+	  Kr*3,
+	  mod_order,nb_rb,
+	  harq_process->pusch_pdu.pusch_data.rv_index, harq_process->pusch_pdu.nrOfLayers,E,F,Kr,harq_process->Z, *pz, Foffset,first_tx,ndi,new_data_indicator);
     Tbslbrm = nr_compute_tbslbrm(0,nb_rb,harq_process->pusch_pdu.nrOfLayers);
 
     VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_NR_RATE_MATCHING_LDPC, VCD_FUNCTION_IN);
