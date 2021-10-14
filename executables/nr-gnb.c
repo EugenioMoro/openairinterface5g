@@ -117,6 +117,7 @@ void tx_func(void *param) {
 
   processingData_L1_t *info = (processingData_L1_t *) param;
   PHY_VARS_gNB *gNB = info->gNB;
+<<<<<<< HEAD
   int frame_tx = info->frame_tx;
   int slot_tx = info->slot_tx;
 
@@ -124,6 +125,23 @@ void tx_func(void *param) {
 
   // start FH TX processing
   notifiedFIFO_elt_t *res; 
+=======
+  int frame_tx = info->frame;
+  int slot_tx = info->slot;
+
+  phy_procedures_gNB_TX(info,
+                        frame_tx,
+                        slot_tx,
+                        1);
+  info->slot = -1;
+  //if ((frame_tx&127) == 0) dump_pdsch_stats(fd,gNB);
+
+  // If the later of the 2 L1 tx thread finishes first,
+  // we wait for the earlier one to finish and start the RU thread
+  // to avoid realtime issues with USRP
+
+  // Start RU TX processing.
+  notifiedFIFO_elt_t *res;
   res = pullTpool(gNB->resp_RU_tx, gNB->threadPool);
   processingData_RU_t *syncMsg = (processingData_RU_t *)NotifiedFifoData(res);
   syncMsg->frame_tx = frame_tx;
