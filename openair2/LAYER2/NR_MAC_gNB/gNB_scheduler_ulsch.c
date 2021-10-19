@@ -683,7 +683,14 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
         UE_info->mac_stats[UE_id].ulsch_DTX++;
       }
       if (UE_info->UE_sched_ctrl[UE_id].pusch_consecutive_dtx_cnt >= pusch_failure_thres) {
-         LOG_D(NR_MAC,"Detected UL Failure on PUSCH, stopping scheduling\n");
+         LOG_I(NR_MAC,
+              "%4d.%2d UE %d/RNTI %04x Detected UL Failure on PUSCH (dtx_cnt %d > pusch_failure_thres %d), stopping scheduling\n",
+              frameP,
+              slotP,
+              UE_id,
+              UE_info->rnti[UE_id],
+              UE_info->UE_sched_ctrl[UE_id].pusch_consecutive_dtx_cnt,
+              pusch_failure_thres);
          UE_info->UE_sched_ctrl[UE_id].ul_failure = 1;
          nr_mac_gNB_rrc_ul_failure(gnb_mod_idP,CC_idP,frameP,slotP,rntiP);
       }
@@ -1394,7 +1401,15 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
   const NR_list_t *UE_list = &UE_info->list;
   for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
-    if (sched_ctrl->ul_failure == 1 && get_softmodem_params()->phy_test==0) continue;
+    if (sched_ctrl->ul_failure == 1 && get_softmodem_params()->phy_test==0) {
+      LOG_D(NR_MAC,
+            "%4d.%2d UL UE %d/RNTI %04x UL Failure, cannot schedule DCI0 fo rUL data\n",
+            frame,
+            slot,
+            UE_id,
+            UE_info->rnti[UE_id]);
+      continue;
+    }
 
     NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
     NR_BWP_UplinkDedicated_t *ubwpd= cg ? cg->spCellConfig->spCellConfigDedicated->uplinkConfig->initialUplinkBWP:NULL;
