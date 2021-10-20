@@ -149,7 +149,13 @@ void set_dl_dmrs_ports(NR_pdsch_semi_static_t *ps) {
       ps->numDmrsCdmGrpsNoData = 2;
       break;
     default:
-      AssertFatal(1==0,"Number of layers %d\n not supported or not valid\n",ps->nrOfLayers);
+      //Workaround!!!
+      // If nrOfLayers is 0 or an invalid number, just set it to 1 for now
+      //AssertFatal(1==0,"Number of layers %d\n not supported or not valid\n",ps->nrOfLayers);
+      LOG_W(PHY,"Number of layers %d not supported or not valid\n",ps->nrOfLayers);
+      ps->nrOfLayers = 1;
+      ps->dmrs_ports_id = 0;
+      ps->numDmrsCdmGrpsNoData = 1;
   }
 }
 

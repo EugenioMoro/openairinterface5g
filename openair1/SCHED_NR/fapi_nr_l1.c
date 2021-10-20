@@ -182,7 +182,9 @@ void nr_schedule_response(NR_Sched_Rsp_t *Sched_INFO){
           break;
 
         case NFAPI_NR_DL_TTI_PDCCH_PDU_TYPE:
-          AssertFatal(pdcch_received == 0, "pdcch_received is not 0, we can only handle one PDCCH PDU per slot\n");
+          //AssertFatal(pdcch_received == 0, "pdcch_received is not 0, we can only handle one PDCCH PDU per slot\n");
+          if (pdcch_received != 0) 
+            LOG_W(PHY,"frame %d, slot %d, Got NFAPI_NR_DL_TTI_PDCCH_PDU_TYPE for %d.%d: pdcch_received %d is not 0, we can only handle one PDCCH PDU per slot\n",frame,slot,DL_req->SFN,DL_req->Slot, pdcch_received);
           msgTx->pdcch_pdu = dl_tti_pdu->pdcch_pdu;
 
           pdcch_received = 1;

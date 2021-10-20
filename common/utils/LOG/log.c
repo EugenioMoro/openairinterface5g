@@ -43,7 +43,9 @@
 #include <string.h>
 #include <linux/prctl.h>
 #include "common/config/config_userapi.h"
-
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
 // main log variables
 
 log_mem_cnt_t log_mem_d[2];
@@ -513,11 +515,17 @@ static int log_header(char *log_buffer,
 					  const char *format)
 {
   char threadname[PR_SET_NAME];
-  return  snprintf(log_buffer, buffsize, "%s%s[%s]%c %s %s%s",
+struct timeval curTime;
+gettimeofday(&curTime, NULL);
+int milli = curTime.tv_usec / 1000;
+char buffer [80];
+strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec));
+  return  snprintf(log_buffer, buffsize, "%s%s[%s]%c %s:%03d %s %s%s",
                    log_level_highlight_end[level],
                    ( (g_log->flag & FLAG_NOCOLOR)?"":log_level_highlight_start[level]),
                    g_log->log_component[comp].name,
                    ( (g_log->flag & FLAG_LEVEL)?g_log->level2string[level]:' '),
+                   buffer, milli,
                    ( (g_log->flag & FLAG_THREAD)?log_getthreadname(threadname,PR_SET_NAME+1):""),
                    format,
                    log_level_highlight_end[level]);
