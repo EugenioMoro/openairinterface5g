@@ -345,6 +345,8 @@ void nr_processDLSegment(void* arg) {
   t_nrLDPC_time_stats procTime = {0};
   t_nrLDPC_time_stats* p_procTime     = &procTime ;
 
+  t_nrLDPC_procBuf **p_nrLDPC_procBuf = harq_process->p_nrLDPC_procBuf;
+
 #if UE_TIMING_TRACE
     start_meas(dlsch_deinterleaving_stats);
 #endif
@@ -444,7 +446,7 @@ void nr_processDLSegment(void* arg) {
       no_iteration_ldpc = nrLDPC_decoder(p_decoderParms,
                                          (int8_t *)&pl[0],
                                          llrProcBuf,
-										 harq_process->p_nrLDPC_procBuf[r],
+                                         p_nrLDPC_procBuf[r],
                                          p_procTime);
       //VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_DLSCH_LDPC, VCD_FUNCTION_OUT);
 
