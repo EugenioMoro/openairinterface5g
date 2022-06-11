@@ -49,6 +49,12 @@
 #include "executables/softmodem-common.h"
 #include "../../../nfapi/oai_integration/vendor_ext.h"
 
+// Eugenio Moro
+// include math for rounding
+#include <math.h> 
+#include "RRC/NR/rrc_gNB_UE_context.h"
+#include "RRC/NR/nr_rrc_defs.h"
+
 ////////////////////////////////////////////////////////
 /////* DLSCH MAC PDU generation (6.1.2 TS 38.321) */////
 ////////////////////////////////////////////////////////
@@ -747,6 +753,45 @@ void pf_dl(module_id_t module_id,
   }
 }
 
+int is_mt(module_id_t mod_id, rnti_t rnti) {
+  // if (!rrc_is_present(mod_id)) return 0;
+  if (!(RC.nrrrc)){
+    LOG_I(NR_MAC, "----is_mt rrc general is not present\n");
+    return -1;
+  }
+
+  if (!(RC.nrrrc[mod_id])){
+    LOG_I(NR_MAC, "----is_mt rrc of mod id is not present\n");
+    return -1;
+  }
+
+  // struct rrc_eNB_ue_context_s *ue_context_p = rrc_eNB_get_ue_context(RC.rrc[mod_id], rnti);
+  struct rcc_gNB_ue_context_s* ue_context_p = rrc_gNB_get_ue_context(RC.nrrrc[mod_id],rnti);
+  if (!ue_context_p){
+    LOG_I(NR_MAC, "----is_mt has not found context\n");
+    return -1;
+  }
+  //struct gNB_RRC_UE_s ueinfo = ue_context_p->ue_context;
+  struct gNB_RRC_UE_s ueinfo = rrc_gNB_get_ue_context(RC.nrrrc[mod_id],rnti)->ue_context;
+  //if (ueinfo) return 0;
+  LOG_I(NR_MAC, "----is_mt function has found context\n");
+  LOG_E(NR_MAC, "1st imsi digit: %d\n",ueinfo.imsi.digit1);
+  LOG_I(NR_MAC, "8th imsi digit: %d\n",ueinfo.imsi.digit8);
+  LOG_I(NR_MAC, "9th imsi digit: %d\n",ueinfo.imsi.digit9);
+  LOG_I(NR_MAC, "10th imsi digit: %d\n",ueinfo.imsi.digit10);
+  LOG_I(NR_MAC, "11th imsi digit: %d\n",ueinfo.imsi.digit11);
+  LOG_I(NR_MAC, "12th imsi digit: %d\n",ueinfo.imsi.digit12);
+  LOG_I(NR_MAC, "13th imsi digit: %d\n",ueinfo.imsi.digit13);
+  LOG_I(NR_MAC, "14th imsi digit: %d\n",ueinfo.imsi.digit14);
+  LOG_I(NR_MAC, "15th imsi digit: %d\n",ueinfo.imsi.digit15);
+  if (ueinfo.imsi.digit1 == 0){
+    return -1;
+  }
+  // if 13th digit is 1 then this is an mt
+  return (ueinfo.imsi.digit13 == 1);
+  //return false;
+}
+
 void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t slot)
 {
   NR_UE_info_t *UE_info = &RC.nrmac[module_id]->UE_info;
@@ -761,9 +806,9 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
 
   const uint16_t bwpSize = NRRIV2BW(sched_ctrl->active_bwp ?
-				    sched_ctrl->active_bwp->bwp_Common->genericParameters.locationAndBandwidth:
-				    scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth,
-				    MAX_BWP_SIZE);
+            sched_ctrl->active_bwp->bwp_Common->genericParameters.locationAndBandwidth:
+            scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth,
+            MAX_BWP_SIZE);
 
   uint16_t *vrb_map = RC.nrmac[module_id]->common_channels[CC_id].vrb_map;
   uint8_t rballoc_mask[bwpSize];
@@ -775,15 +820,55 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
     n_rb_sched += rballoc_mask[i];
   }
 
+  //____EUGENIO MORO 
+  // two slices statically scheduled, mt slice recieves mt_coeff resource fraction
+  int n_rbg_mt = 0;
+  int n_rbg_ue = 0;
+  int mt_coeff = 2/3;
+  int mt_posLow, ue_posLow, mt_posHigh, ue_posHigh;
+  uint8_t rbgalloc_mt_mask[bwpSize];
+  uint8_t rbgalloc_ue_mask[bwpSize];
+
+  // init masks
+  memset(rbgalloc_mt_mask, 0, sizeof(rbgalloc_mt_mask));
+  memset(rbgalloc_ue_mask, 0, sizeof(rbgalloc_mt_mask));
+
+  // compute rgb positions, ue1 lower part of mask 
+  mt_posLow = 0;
+  mt_posHigh = round(mt_coeff*bwpSize);
+  ue_posLow = mt_posHigh + 1;
+  ue_posHigh = bwpSize - 1;
+
+  // mt mask generation
+  for (int rbg = mt_posLow; rbg <= mt_posHigh && rbg <= bwpSize; ++rbg) {
+      rbgalloc_mt_mask[rbg] = rballoc_mask[rbg];
+      n_rbg_mt += rballoc_mask[rbg];
+    }
+  // ue mask generation
+  for (int rbg = ue_posLow; rbg <= ue_posHigh && rbg <= bwpSize; ++rbg) {
+      rbgalloc_ue_mask[rbg] = rballoc_mask[rbg];
+      n_rbg_ue += rballoc_mask[rbg];
+    }
   /* Retrieve amount of data to send for this UE */
   nr_store_dlsch_buffer(module_id, frame, slot);
 
+  // scan ues and set mt flag if still undefined
+  for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+    //LOG_I(NR_MAC, "looping ue %d ismt %d\n", UE_id, UE_info->is_mt[UE_id]);
+    if (UE_info->is_mt[UE_id] >= 0){
+      continue; // continue because this ue has been already identified
+    } else {
+      //LOG_I(NR_MAC, "ue %d calling is_mt\n", UE_id);
+      UE_info->is_mt[UE_id] = is_mt(module_id, UE_info->rnti[UE_id]);
+      LOG_I(NR_MAC, "UE %d recognized as %s \n",UE_id, UE_info->is_mt[UE_id] == 1 ? "mt" : "ue");
+    }
+  }
   /* proportional fair scheduling algorithm */
   pf_dl(module_id,
         frame,
         slot,
         &UE_info->list,
-        2,
+        16, // max num ue
         n_rb_sched,
         rballoc_mask);
 }
@@ -1050,7 +1135,7 @@ void nr_schedule_ue_spec(module_id_t module_id,
     // as per table 7.3.1.1.2-1 in 38.212
     dci_payload.bwp_indicator.val = bwp ? (n_dl_bwp < 4 ? bwp->bwp_Id : bwp->bwp_Id - 1) : 0;
     if (bwp) AssertFatal(bwp->bwp_Dedicated->pdsch_Config->choice.setup->resourceAllocation == NR_PDSCH_Config__resourceAllocation_resourceAllocationType1,
-			 "Only frequency resource allocation type 1 is currently supported\n");
+       "Only frequency resource allocation type 1 is currently supported\n");
     dci_payload.frequency_domain_assignment.val =
         PRBalloc_to_locationandbandwidth0(
             pdsch_pdu->rbSize,

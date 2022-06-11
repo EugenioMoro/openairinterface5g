@@ -665,6 +665,7 @@ int to_prb(int);
 int to_rbg(int);
 int mac_init(void);
 int add_new_ue(module_id_t Mod_id, int CC_id, rnti_t rnti, int harq_pid, uint8_t rach_resource_type);
+//bool is_mt(module_id_t mod_id, rnti_t rnti);
 int rrc_mac_remove_ue(module_id_t Mod_id, rnti_t rntiP);
 
 void store_dlsch_buffer(module_id_t Mod_id, int CC_id, frame_t frameP, sub_frame_t subframeP);

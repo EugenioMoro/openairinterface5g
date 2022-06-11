@@ -62,6 +62,11 @@
 
 #include "common/ran_context.h"
 
+// eugenio
+//#include "openair2/RRC/NR/nr_rrc_proto.h"
+#include "RRC/NR/rrc_gNB_UE_context.h"
+#include "RRC/NR/nr_rrc_defs.h"
+
 extern RAN_CONTEXT_t RC;
 
   // Note the 2 scs values in the table names represent resp. scs_common and pdcch_scs
@@ -1939,6 +1944,10 @@ int add_new_nr_ue(module_id_t mod_idP, rnti_t rntiP, NR_CellGroupConfig_t *CellG
     UE_info->rnti[UE_id] = rntiP;
     UE_info->CellGroup[UE_id] = CellGroup;
     add_nr_list(&UE_info->list, UE_id);
+
+    // Eugenio Moro
+    UE_info->is_mt[UE_id] = -1;
+    LOG_I(MAC, "just set mt to %d", UE_info->is_mt[UE_id]);
     memset(&UE_info->mac_stats[UE_id], 0, sizeof(NR_mac_stats_t));
     set_Y(UE_info->Y[UE_id], rntiP);
     if (CellGroup && CellGroup->spCellConfig && CellGroup->spCellConfig && CellGroup->spCellConfig->spCellConfigDedicated)

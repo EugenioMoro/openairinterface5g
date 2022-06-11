@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS vhss.extid (
 
 CREATE TABLE IF NOT EXISTS vhss.extid_imsi (
     extid text,
-    imsi text,
+     text,
     primary key (extid, imsi)
 );
 
