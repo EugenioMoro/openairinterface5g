@@ -1946,7 +1946,7 @@ int add_new_nr_ue(module_id_t mod_idP, rnti_t rntiP, NR_CellGroupConfig_t *CellG
     add_nr_list(&UE_info->list, UE_id);
 
     // Eugenio Moro
-    UE_info->is_mt[UE_id] = -1;
+    UE_info->is_mt[UE_id] = false;
     LOG_I(MAC, "just set mt to %d", UE_info->is_mt[UE_id]);
     memset(&UE_info->mac_stats[UE_id], 0, sizeof(NR_mac_stats_t));
     set_Y(UE_info->Y[UE_id], rntiP);

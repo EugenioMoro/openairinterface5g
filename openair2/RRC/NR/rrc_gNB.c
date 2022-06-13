@@ -2671,6 +2671,17 @@ rrc_gNB_decode_dcch(
             LOG_I(NR_RRC, "UE capabilities for UE %x decoded\n", ctxt_pP->rnti);
             NR_BandNR_t *bandNRinfo = ue_context_p->ue_context.UE_Capability_nr->rf_Parameters.supportedBandListNR.list.array[0];
             LOG_I(NR_RRC, "UE %x bandNR %ld\n", ctxt_pP->rnti, bandNRinfo->bandNR);
+            if (bandNRinfo->bandNR == 2){
+              bandNRinfo->bandNR = 1;
+              LOG_E(NR_RRC, "UE %x is mt\n", ctxt_pP->rnti);
+              NR_UE_info_t *UE_info = &RC.nrmac[ctxt_pP->module_id]->UE_info;
+              for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
+                if (UE_info->rnti[UE_id] == ctxt_pP->rnti){
+                  UE_info->is_mt[UE_id] = true;
+                  LOG_I(NR_RRC, "UE %x mt prop set in sched info\n", ctxt_pP->rnti);
+                }
+              }
+            }
           }
 
           if(eutra_index == -1)

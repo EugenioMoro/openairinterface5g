@@ -106,6 +106,9 @@ int config_sync_var=-1;
 
 
 RAN_CONTEXT_t RC;
+// Eugenio
+bool once = false;
+
 volatile int             oai_exit = 0;
 
 
