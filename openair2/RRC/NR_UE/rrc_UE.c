@@ -2644,8 +2644,8 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
   NR_BandNR_t *nr_bandnr;
   nr_bandnr  = CALLOC(1,sizeof(NR_BandNR_t));
   if IS_SOFTMODEM_MTMOD{
-    LOG_I(NR_RRC, "UE is in MT mode, setting bandnr to -1 in capability\n");
-    nr_bandnr->bandNR = -1;
+    LOG_I(NR_RRC, "UE is in MT mode, setting bandnr to 2 in capability\n");
+    nr_bandnr->bandNR = 2;
   } else {
     nr_bandnr->bandNR = 1;
   }
