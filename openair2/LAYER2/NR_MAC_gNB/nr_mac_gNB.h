@@ -636,7 +636,7 @@ typedef struct {
 
   bool active[MAX_MOBILES_PER_GNB];
   // eugenio
-  int is_mt[MAX_MOBILES_PER_GNB]; // 0: false, 1: true, -1: not yet defined
+  bool is_mt[MAX_MOBILES_PER_GNB]; // 0: false, 1: true, -1: not yet defined
   rnti_t rnti[MAX_MOBILES_PER_GNB];
   NR_CellGroupConfig_t *CellGroup[MAX_MOBILES_PER_GNB];
   /// CCE indexing
