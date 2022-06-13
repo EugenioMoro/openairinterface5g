@@ -2643,7 +2643,12 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
   UE_Capability_nr = CALLOC(1,sizeof(NR_UE_NR_Capability_t));
   NR_BandNR_t *nr_bandnr;
   nr_bandnr  = CALLOC(1,sizeof(NR_BandNR_t));
-  nr_bandnr->bandNR = 1;
+  if IS_SOFTMODEM_MTMOD{
+    LOG_I(NR_RRC, "UE is in MT mode, setting bandnr to -1 in capability\n");
+    nr_bandnr->bandNR = -1;
+  } else {
+    nr_bandnr->bandNR = 1;
+  }
   ASN_SEQUENCE_ADD(
     &UE_Capability_nr->rf_Parameters.supportedBandListNR.list,
     nr_bandnr);

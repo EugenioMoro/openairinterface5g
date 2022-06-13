@@ -2667,6 +2667,12 @@ rrc_gNB_decode_dcch(
             }
           }
 
+          if(ue_context_p->ue_context.UE_Capability_nr){
+            LOG_I(NR_RRC, "UE capabilities for UE %x decoded\n", ctxt_pP->rnti);
+            NR_BandNR_t *bandNRinfo = ue_context_p->ue_context.UE_Capability_nr->rf_Parameters.supportedBandListNR.list.array[0];
+            LOG_I(NR_RRC, "UE %x bandNR %ld\n", ctxt_pP->rnti, bandNRinfo->bandNR);
+          }
+
           if(eutra_index == -1)
           break;
       }

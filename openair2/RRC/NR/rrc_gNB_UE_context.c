@@ -152,7 +152,7 @@ rrc_gNB_get_ue_context(
   rnti_t rntiP)
 //------------------------------------------------------------------------------
 {
-  LOG_I(MAC, "gnb context search\n");
+  //LOG_I(MAC, "gnb context search\n");
   rrc_gNB_ue_context_t temp;
   memset(&temp, 0, sizeof(struct rrc_gNB_ue_context_s));
   /* gNB ue rrc id = 24 bits wide */
@@ -161,16 +161,16 @@ rrc_gNB_get_ue_context(
   ue_context_p = RB_FIND(rrc_nr_ue_tree_s, &rrc_instance_pP->rrc_ue_head, &temp);
 
   if ( ue_context_p != NULL) {
-    LOG_I(MAC, "gnb context found\n");
+    //LOG_I(MAC, "gnb context found\n");
     return ue_context_p;
   } else {
     RB_FOREACH(ue_context_p, rrc_nr_ue_tree_s, &(rrc_instance_pP->rrc_ue_head)) {
       if (ue_context_p->ue_context.rnti == rntiP) {
-        LOG_I(MAC, "gnb context found in foreach\n");
+        //LOG_I(MAC, "gnb context found in foreach\n");
         return ue_context_p;
       }
     }
-    LOG_I(MAC, "gnb context not found at all\n");
+    //LOG_I(MAC, "gnb context not found at all\n");
     return NULL;
   }
 }

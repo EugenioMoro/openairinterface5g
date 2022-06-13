@@ -855,12 +855,12 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   // scan ues and set mt flag if still undefined
   for (int UE_id = UE_info->list.head; UE_id >= 0; UE_id = UE_info->list.next[UE_id]) {
     //LOG_I(NR_MAC, "looping ue %d ismt %d\n", UE_id, UE_info->is_mt[UE_id]);
-    if (UE_info->is_mt[UE_id] >= 0){
+    if (true){//UE_info->is_mt[UE_id] >= 0){
       continue; // continue because this ue has been already identified
     } else {
       //LOG_I(NR_MAC, "ue %d calling is_mt\n", UE_id);
-      UE_info->is_mt[UE_id] = is_mt(module_id, UE_info->rnti[UE_id]);
-      LOG_I(NR_MAC, "UE %d recognized as %s \n",UE_id, UE_info->is_mt[UE_id] == 1 ? "mt" : "ue");
+      //UE_info->is_mt[UE_id] = is_mt(module_id, UE_info->rnti[UE_id]);
+      //LOG_I(NR_MAC, "UE %d recognized as %s \n",UE_id, UE_info->is_mt[UE_id] == 1 ? "mt" : "ue");
     }
   }
   /* proportional fair scheduling algorithm */

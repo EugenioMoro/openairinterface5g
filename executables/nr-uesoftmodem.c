@@ -257,6 +257,7 @@ static void get_options(void) {
   paramdef_t cmdline_params[] =CMDLINE_NRUEPARAMS_DESC ;
   int numparams = sizeof(cmdline_params)/sizeof(paramdef_t);
   config_process_cmdline( cmdline_params,numparams,NULL);
+  
 
 
 
