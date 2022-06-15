@@ -590,6 +590,7 @@ bool allocate_dl_retransmission(module_id_t module_id,
 
 float thr_ue[MAX_MOBILES_PER_GNB];
 uint32_t pf_tbs[3][29]; // pre-computed, approximate TBS values for PF coefficient
+int iter_DELETEME = 0;
 
 void pf_dl(module_id_t module_id,
            frame_t frame,
@@ -750,6 +751,175 @@ void pf_dl(module_id_t module_id,
     n_rb_sched -= sched_pdsch->rbSize;
     for (int rb = 0; rb < sched_pdsch->rbSize; rb++)
       rballoc_mask[rb + sched_pdsch->rbStart] = 0;
+  }
+}
+
+void pf_dl_iab_w(module_id_t module_id,
+           frame_t frame,
+           sub_frame_t slot,
+           NR_list_t *UE_list,
+           int max_num_ue,
+           int n_rb_sched,
+           uint8_t *rballoc_mask) {
+
+  gNB_MAC_INST *mac = RC.nrmac[module_id];
+  NR_UE_info_t *UE_info = &mac->UE_info;
+  NR_ServingCellConfigCommon_t *scc=mac->common_channels[0].ServingCellConfigCommon;
+  float coeff_ue[MAX_MOBILES_PER_GNB];
+  // UEs that could be scheduled
+  int ue_array[MAX_MOBILES_PER_GNB];
+  NR_list_t UE_sched = { .head = -1, .next = ue_array, .tail = -1, .len = MAX_MOBILES_PER_GNB };
+
+  /* Loop UE_info->list to check retransmission */
+  for (int UE_id = UE_list->head; UE_id >= 0; UE_id = UE_list->next[UE_id]) {
+    if (UE_info->Msg4_ACKed[UE_id] != true) continue;
+    NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+    if (sched_ctrl->ul_failure==1 && get_softmodem_params()->phy_test==0) continue;
+    NR_sched_pdsch_t *sched_pdsch = &sched_ctrl->sched_pdsch;
+    NR_pdsch_semi_static_t *ps = &sched_ctrl->pdsch_semi_static;
+    /* get the PID of a HARQ process awaiting retrnasmission, or -1 otherwise */
+    sched_pdsch->dl_harq_pid = sched_ctrl->retrans_dl_harq.head;
+
+    /* Calculate Throughput */
+    const float a = 0.0005f; // corresponds to 200ms window
+    const uint32_t b = UE_info->mac_stats[UE_id].dlsch_current_bytes;
+    thr_ue[UE_id] = (1 - a) * thr_ue[UE_id] + a * b; // this is wrong!!!!!!!
+    // LOG_I(NR_MAC, "it %d -- ue %d tp %f", iter_DELETEME,UE_id, thr_ue[UE_id]);
+
+    /* retransmission */
+    if (sched_pdsch->dl_harq_pid >= 0) {
+      /* Allocate retransmission */
+      bool r = allocate_dl_retransmission(
+          module_id, frame, slot, rballoc_mask, &n_rb_sched, UE_id, sched_pdsch->dl_harq_pid);
+      if (!r) {
+        LOG_D(NR_MAC, "%4d.%2d retransmission can NOT be allocated\n", frame, slot);
+        continue;
+      }
+      /* reduce max_num_ue once we are sure UE can be allocated, i.e., has CCE */
+      max_num_ue--;
+      if (max_num_ue < 0) return;
+    } else {
+      /* Check DL buffer and skip this UE if no bytes and no TA necessary */
+      if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024)
+        continue;
+
+      /* Calculate coeff */
+      sched_pdsch->mcs = 9;
+      ps->nrOfLayers = 1;
+      uint32_t tbs = pf_tbs[ps->mcsTableIdx][sched_pdsch->mcs];
+      coeff_ue[UE_id] = (float) tbs / thr_ue[UE_id];
+      if (UE_info->is_mt[UE_id]) {
+      coeff_ue[UE_id] = coeff_ue[UE_id]*2;
+      }
+      LOG_D(NR_MAC,"b %d, thr_ue[%d] %f, tbs %d, coeff_ue[%d] %f\n",
+            b, UE_id, thr_ue[UE_id], tbs, UE_id, coeff_ue[UE_id]);
+      /* Create UE_sched list for UEs eligible for new transmission*/
+      add_tail_nr_list(&UE_sched, UE_id);
+    }
+  }
+
+  /* Loop UE_sched to find max coeff and allocate transmission */
+  iter_DELETEME++;
+  while (max_num_ue > 0 && n_rb_sched > 0 && UE_sched.head >= 0) {
+
+    /* Find max coeff from UE_sched*/
+    int *max = &UE_sched.head; /* assume head is max */
+    int *p = &UE_sched.next[*max];
+    while (*p >= 0) {
+      /* if the current one has larger coeff, save for later */
+      if (coeff_ue[*p] > coeff_ue[*max])
+        max = p;
+      p = &UE_sched.next[*p];
+    }
+    /* remove the max one: do not use remove_nr_list() it goes through the
+     * whole list every time. Note that UE_sched.tail might not be set
+     * correctly anymore */
+    const int UE_id = *max;
+    LOG_I(NR_MAC, "it %d -- ue selected: %d\n", iter_DELETEME,UE_id);
+    p = &UE_sched.next[*max];
+    *max = UE_sched.next[*max];
+    *p = -1;
+    NR_CellGroupConfig_t *cg = UE_info->CellGroup[UE_id];
+    NR_BWP_DownlinkDedicated_t *bwpd= cg ? cg->spCellConfig->spCellConfigDedicated->initialDownlinkBWP:NULL;
+
+    NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+    int bwp_Id = sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0;
+    const uint16_t rnti = UE_info->rnti[UE_id];
+    NR_BWP_t *genericParameters = sched_ctrl->active_bwp ?
+      &sched_ctrl->active_bwp->bwp_Common->genericParameters:
+      &scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters;
+
+    const uint16_t bwpSize = NRRIV2BW(genericParameters->locationAndBandwidth,MAX_BWP_SIZE);
+    int rbStart = NRRIV2PRBOFFSET(genericParameters->locationAndBandwidth, MAX_BWP_SIZE);
+
+    /* Find a free CCE */
+    bool freeCCE = find_free_CCE(module_id, slot, UE_id);
+    if (!freeCCE) {
+      LOG_D(NR_MAC, "%4d.%2d could not find CCE for DL DCI UE %d/RNTI %04x\n", frame, slot, UE_id, rnti);
+      continue;
+    }
+    /* reduce max_num_ue once we are sure UE can be allocated, i.e., has CCE */
+    max_num_ue--;
+    if (max_num_ue < 0) return;
+
+    /* Find PUCCH occasion: if it fails, undo CCE allocation (undoing PUCCH
+    * allocation after CCE alloc fail would be more complex) */
+    const int alloc = nr_acknack_scheduling(module_id, UE_id, frame, slot, -1, 0);
+    if (alloc<0) {
+      LOG_D(NR_MAC,
+            "%s(): could not find PUCCH for UE %d/%04x@%d.%d\n",
+            __func__,
+            UE_id,
+            rnti,
+            frame,
+            slot);
+      int cid = sched_ctrl->coreset->controlResourceSetId;
+      UE_info->num_pdcch_cand[UE_id][cid]--;
+      int *cce_list = mac->cce_list[bwp_Id][cid];
+      for (int i = 0; i < sched_ctrl->aggregation_level; i++)
+        cce_list[sched_ctrl->cce_index + i] = 0;
+      return;
+    }
+
+    // Freq-demain allocation
+    while (rbStart < bwpSize && !rballoc_mask[rbStart]) rbStart++;
+
+    uint16_t max_rbSize = 1;
+    while (rbStart + max_rbSize < bwpSize && rballoc_mask[rbStart + max_rbSize])
+      max_rbSize++;
+
+    /* MCS has been set above */
+
+    const int tda = RC.nrmac[module_id]->preferred_dl_tda[sched_ctrl->active_bwp ? sched_ctrl->active_bwp->bwp_Id : 0][slot];
+    AssertFatal(tda>=0,"Unable to find PDSCH time domain allocation in list\n");
+    NR_sched_pdsch_t *sched_pdsch = &sched_ctrl->sched_pdsch;
+    NR_pdsch_semi_static_t *ps = &sched_ctrl->pdsch_semi_static;
+    const long f = (sched_ctrl->active_bwp || bwpd) ? sched_ctrl->search_space->searchSpaceType->choice.ue_Specific->dci_Formats : 0;
+    if (ps->time_domain_allocation != tda)
+      nr_set_pdsch_semi_static(scc, UE_info->CellGroup[UE_id], sched_ctrl->active_bwp, bwpd, tda, f, ps);
+    sched_pdsch->Qm = nr_get_Qm_dl(sched_pdsch->mcs, ps->mcsTableIdx);
+    sched_pdsch->R = nr_get_code_rate_dl(sched_pdsch->mcs, ps->mcsTableIdx);
+    sched_pdsch->pucch_allocation = alloc;
+    uint32_t TBS = 0;
+    uint16_t rbSize;
+    const int oh = 3 + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
+    nr_find_nb_rb(sched_pdsch->Qm,
+                  sched_pdsch->R,
+                  ps->nrOfSymbols,
+                  ps->N_PRB_DMRS * ps->N_DMRS_SLOT,
+                  sched_ctrl->num_total_bytes + oh,
+                  max_rbSize,
+                  &TBS,
+                  &rbSize);
+    sched_pdsch->rbSize = rbSize;
+    sched_pdsch->rbStart = rbStart;
+    sched_pdsch->tb_size = TBS;
+
+    /* transmissions: directly allocate */
+    n_rb_sched -= sched_pdsch->rbSize;
+    for (int rb = 0; rb < sched_pdsch->rbSize; rb++)
+      rballoc_mask[rb + sched_pdsch->rbStart] = 0;
+    //LOG_I(NR_MAC, "it %d -- nrb left: %d\n",iter_DELETEME,n_rb_sched);
   }
 }
 
@@ -1029,30 +1199,31 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
   /* proportional fair scheduling algorithm */
   //pf_dl(module_id,
+    pf_dl_iab_w(module_id,
+        frame,
+        slot,
+        &UE_info->list,
+        16, // max num ue
+        n_rb_sched,
+        rballoc_mask);
+
+  //pf_dl_masked(module_id,
   //      frame,
   //      slot,
   //      &UE_info->list,
   //      16, // max num ue
-  //      n_rb_sched,
-  //      rballoc_mask);
+  //      n_rbg_mt,
+  //      rbgalloc_mt_mask,
+  //      true );// sched_mt
 
-  pf_dl_masked(module_id,
-        frame,
-        slot,
-        &UE_info->list,
-        16, // max num ue
-        n_rbg_mt,
-        rbgalloc_mt_mask,
-        true );// sched_mt
-
-  pf_dl_masked(module_id,
-        frame,
-        slot,
-        &UE_info->list,
-        16, // max num ue
-        n_rbg_ue,
-        rbgalloc_ue_mask,
-        false );// sched ue
+  //pf_dl_masked(module_id,
+  //      frame,
+  //      slot,
+  //      &UE_info->list,
+  //      16, // max num ue
+  //      n_rbg_ue,
+  //      rbgalloc_ue_mask,
+  //      false );// sched ue
 }
 
 nr_pp_impl_dl nr_init_fr1_dlsch_preprocessor(module_id_t module_id, int CC_id)
