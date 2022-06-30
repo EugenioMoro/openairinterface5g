@@ -2138,8 +2138,7 @@ set (ENB_APP_SRC
 
 set (GNB_APP_SRC
   ${OPENAIR2_DIR}/GNB_APP/gnb_app.c
-  ${OPENAIR2_DIR}/GNB_APP/gnb_config.c
-  )
+  ${OPENAIR2_DIR}/GNB_APP/gnb_config.c)
 
 set (MCE_APP_SRC
   ${OPENAIR2_DIR}/MCE_APP/mce_app.c
@@ -3011,7 +3010,7 @@ add_executable(nr-softmodem
   ${CONFIG_SOURCES}
   ${SHLIB_LOADER_SOURCES}
   ${OPENAIR2_DIR}/ENB_APP/flexran_agent_ran_api_to_fix.c
-  )
+        ${OPENAIR2_DIR}/GNB_APP/e2_agent_app.c ${OPENAIR2_DIR}/GNB_APP/e2_agent_app.h)
 
 target_compile_definitions(nr-softmodem PUBLIC NEW_GTPU)
 target_link_libraries (nr-softmodem

@@ -233,6 +233,7 @@ typedef enum {
   NR_RRC,
   NR_MAC,
   NR_PHY,
+  E2_AGENT,
   LOADER,
   ASN,
   NFAPI_VNF,

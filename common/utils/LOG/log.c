@@ -475,6 +475,7 @@ int logInit (void)
   register_log_component("NFAPI_PNF","log",NFAPI_PNF);
   register_log_component("GNB_APP","log",GNB_APP);
   register_log_component("NR_RRC","log",NR_RRC);
+  register_log_component("E2_AGENT","log", E2_AGENT);
   register_log_component("NR_MAC","log",NR_MAC);
   register_log_component("NR_PHY","log",NR_PHY);
   register_log_component("NGAP","",NGAP);
