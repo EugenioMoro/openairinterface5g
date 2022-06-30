@@ -183,6 +183,10 @@ function main() {
   until [ -z "$1" ]
   do
     case "$1" in
+      --arch-native)
+          CMAKE_C_FLAGS+=("-march=native")
+          CMAKE_CXX_FLAGS+=("-march=native")
+          shift;;
        -c | --clean)
             CLEAN=1
             shift;;

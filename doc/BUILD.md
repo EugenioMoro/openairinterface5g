@@ -20,7 +20,7 @@ The OAI EPC is developed in a distinct project with it's own [documentation](htt
 
 OAI softmodem sources, which aim to implement 3GPP compliant UEs, eNodeB and gNodeB can be downloaded from the Eurecom [gitlab repository](./GET_SOURCES.md).
 
-Sources come with a build script [build_oai](../cmake_targets/build_oai) located at the root of the `openairinterface5g/cmake_targets` directory. This script is developed to build the oai binaries (executables,shared libraries) for different hardware platforms, and use cases. 
+Sources come with a build script [build_oai](../cmake_targets/build_oai.sh) located at the root of the `openairinterface5g/cmake_targets` directory. This script is developed to build the oai binaries (executables,shared libraries) for different hardware platforms, and use cases. 
 
 The main oai binaries, which are tested by the Continuous Integration process are:
 
@@ -32,7 +32,7 @@ The main oai binaries, which are tested by the Continuous Integration process ar
 -  The 5G PHY simulators: `nr_dlschsim` `nr_dlsim`   `nr_pbchsim` `nr_pucchsim` `nr_ulschsim` `nr_ulsim` `polartest` `smallblocktest`
    `ulsim` `ldpctest`
 
-Running the  [build_oai](../cmake_targets/build_oai) script also generates some utilities required to build and/or run the oai softmodem binaries:
+Running the  [build_oai](../cmake_targets/build_oai.sh) script also generates some utilities required to build and/or run the oai softmodem binaries:
 
 - `conf2uedata`: a binary used to build the UE data from a configuration file. The created file emulates the sim card  of a 3GPP compliant phone.
 - `nvram`: a binary used to build UE (IMEI...) and EMM (IMSI, registered PLMN) non volatile data. 
