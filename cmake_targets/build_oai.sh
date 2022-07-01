@@ -73,6 +73,7 @@ OPTIONAL_LIBRARIES="telnetsrv enbscope uescope nrscope msc"
 RU=0
 trap handle_ctrl_c INT
 
+
 function print_help() {
   echo_info "
 This program installs OpenAirInterface Software
@@ -184,6 +185,7 @@ function main() {
   do
     case "$1" in
       --arch-native)
+          echo "arch native selected"
           CMAKE_C_FLAGS+=("-march=native")
           CMAKE_CXX_FLAGS+=("-march=native")
           shift;;
@@ -474,8 +476,13 @@ function main() {
       fi
   fi
 
-  CMAKE_CMD="$CMAKE_CMD .."
+  CMAKE_CMD="$CMAKE_CMD $CMAKE_C_FLAGS .."
+  if [[ ${#CMAKE_C_FLAGS[@]} > 0 ]]; then CMAKE_CMD="$CMAKE_CMD -DCMAKE_C_FLAGS=\"${CMAKE_C_FLAGS[*]}\""; fi
+  if [[ ${#CMAKE_CXX_FLAGS[@]} > 0 ]]; then CMAKE_CMD="$CMAKE_CMD -DCMAKE_CXX_FLAGS=\"${CMAKE_CXX_FLAGS[*]}\""; fi
+
   echo_info "CMAKE_CMD=$CMAKE_CMD"
+  echo "CMAKE ready, proceed with build?"
+  read -r
 
   ########################################################
   # Check validity of HW and TP parameters for eNB / gNB #

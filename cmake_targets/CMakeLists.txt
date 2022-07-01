@@ -339,7 +339,7 @@ set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -ggdb3 -Wl,-rpath -Wl,${C
 set(debugOpt "-ggdb3 -DMALLOC_CHECK_=3 -fno-delete-null-pointer-checks")
 set(CMAKE_C_FLAGS_DEBUG "${debugOpt} -O0")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${debugOpt} -O2")
-set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -march=native")
 
 set(GIT_BRANCH        "UNKNOWN")
 set(GIT_COMMIT_HASH   "UNKNOWN")
@@ -3010,7 +3010,7 @@ add_executable(nr-softmodem
   ${CONFIG_SOURCES}
   ${SHLIB_LOADER_SOURCES}
   ${OPENAIR2_DIR}/ENB_APP/flexran_agent_ran_api_to_fix.c
-        ${OPENAIR2_DIR}/GNB_APP/e2_agent_app.c ${OPENAIR2_DIR}/GNB_APP/e2_agent_app.h)
+        ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.c ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.h)
 
 target_compile_definitions(nr-softmodem PUBLIC NEW_GTPU)
 target_link_libraries (nr-softmodem
