@@ -947,7 +947,7 @@ set(HWLIB_BENETEL_4G_SOURCE
   ${OPENAIR_TARGETS}/ARCH/ETHERNET/benetel/4g/low.c
   ${OPENAIR_TARGETS}/ARCH/ETHERNET/benetel/4g/low_dpdk.c
   ${OPENAIR_TARGETS}/ARCH/ETHERNET/benetel/4g/dpdk_driver.c
-  )
+        ${OPENAIR2_DIR}/E2_AGENT/proto/e2.pb.c ${OPENAIR2_DIR}/E2_AGENT/proto/e2.pb.h)
 add_library(benetel_4g MODULE ${HWLIB_BENETEL_4G_SOURCE} )
 
 set_target_properties(benetel_4g PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -march=native -I$ENV{RTE_SDK}/$ENV{RTE_TARGET}/include")
@@ -3010,7 +3010,21 @@ add_executable(nr-softmodem
   ${CONFIG_SOURCES}
   ${SHLIB_LOADER_SOURCES}
   ${OPENAIR2_DIR}/ENB_APP/flexran_agent_ran_api_to_fix.c
-        ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.c ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.h)
+        ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.c
+        ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.h
+        ${OPENAIR2_DIR}/E2_AGENT/e2_prtbf_common.c
+        ${OPENAIR2_DIR}/E2_AGENT/e2_prtbf_common.h
+        ${OPENAIR2_DIR}/E2_AGENT/pb_common.c
+        ${OPENAIR2_DIR}/E2_AGENT/pb_common.h
+        ${OPENAIR2_DIR}/E2_AGENT/pb_decode.c
+        ${OPENAIR2_DIR}/E2_AGENT/pb_decode.h
+        ${OPENAIR2_DIR}/E2_AGENT/pb_encode.c
+        ${OPENAIR2_DIR}/E2_AGENT/pb_encode.h
+        ${OPENAIR2_DIR}/E2_AGENT/pb.h
+        ${OPENAIR2_DIR}/E2_AGENT/e2_prtbf_common.h
+        ${OPENAIR2_DIR}/E2_AGENT/proto/e2.pb.c
+        ${OPENAIR2_DIR}/E2_AGENT/proto/e2.pb.h
+        ${OPENAIR2_DIR}/E2_AGENT/E2_requests.h)
 
 target_compile_definitions(nr-softmodem PUBLIC NEW_GTPU)
 target_link_libraries (nr-softmodem

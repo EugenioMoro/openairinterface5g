@@ -12,6 +12,13 @@
 #include "common/ran_context.h"
 #include "common/utils/LOG/log.h"
 
+#include "pb_encode.h"
+#include "pb_decode.h"
+
+#include "proto/e2.pb.h"
+#include "E2_requests.h"
+#include "e2_prtbf_common.h"
+
 extern RAN_CONTEXT_t RC;
 
 int agent_task_created = 0;
@@ -84,11 +91,68 @@ void *e2_agent_task(void* args_p){
         }
         LOG_I(E2_AGENT, "Got connection\n");
 
-        //handle_connection(connfd);
+        handle_connection(e2_info->connfd);
 
         printf("Closing connection.\n");
 
         close(e2_info->connfd);
     }
 
+}
+
+
+void build_dummy_response(E2_REQID_t req_id, E2_dummy_response *rsp, int connfd) {
+    rsp->req_id = req_id;
+    strcpy(rsp->mess_string,"Hi, this is a dummy response!!");
+    rsp->result = true;
+}
+
+void build_send_dummy_response(E2_REQID_t req_id, E2_dummy_response* rsp, int connfd){
+    rsp->req_id = 100;
+    rsp->req_id = req_id;
+    strcpy(rsp->mess_string,"Hi, this is a dummy response!!");
+    rsp->result = true;
+    pb_ostream_t output = pb_ostream_from_socket(connfd);
+    if (!pb_encode_delimited(&output, E2_dummy_response_fields, rsp)) {
+        printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
+    }
+    printf("Encoded in %lu bytes\n", output.bytes_written);
+}
+
+void ship_response(pb_msgdesc_t msg_descriptor, void* response, int connfd){
+    pb_ostream_t output = pb_ostream_from_socket(connfd);
+    if (!pb_encode_delimited(&output, &msg_descriptor, response)) {
+        printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
+    }
+    // printf("Encoded in %lu bytes\n", output.bytes_written);
+}
+
+void handle_connection(int connfd) {
+
+    E2_request request = {};
+    pb_istream_t input = pb_istream_from_socket(connfd);
+    if (!pb_decode_delimited(&input, E2_request_fields, &request)) {
+        printf("Decode failed: %s\n", PB_GET_ERROR(&input));
+        return;
+    }
+    printf("Received E2 request id %d\n", request.req_id);
+    switch (request.req_id++) {
+        case E2_REQID_DUMMY1:{
+            E2_dummy_response* rsp = malloc(E2_dummy_response_size);
+            build_dummy_response(E2_REQID_DUMMY1,rsp, connfd);
+            ship_response(E2_dummy_response_msg,rsp,connfd);
+            free(rsp);
+            break;
+        }
+        case E2_REQID_DUMMY2: {
+            E2_dummy_response *rsp = malloc(E2_dummy_response_size);
+            build_dummy_response(E2_REQID_DUMMY2, rsp, connfd);
+            ship_response(E2_dummy_response_msg, rsp, connfd);
+            free(rsp);
+            break;
+        }
+        default:
+            printf("Unrecognized request id %d\n",request.req_id);
+            break;
+    }
 }
