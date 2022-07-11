@@ -838,8 +838,8 @@ static void add_drb_am(int rnti, struct NR_DRB_ToAddMod *s, NR_RLC_BearerConfig_
   if (ue->drb[drb_id-1] != NULL) {
     LOG_W(RLC, "%s:%d:%s: DRB %d already exists for UE with RNTI %d, do nothing\n", __FILE__, __LINE__, __FUNCTION__, drb_id, rnti);
   } else {
-    nr_rlc_am = new_nr_rlc_entity_am(10000000,
-                                     10000000,
+    nr_rlc_am = new_nr_rlc_entity_am(100000000, // tenfold sdu buffer increase (srns have plenty of memory)
+                                     100000000, // tenfold sdu buffer increase (srns have plenty of memory)
                                      deliver_sdu, ue,
                                      successful_delivery, ue,
                                      max_retx_reached, ue,
