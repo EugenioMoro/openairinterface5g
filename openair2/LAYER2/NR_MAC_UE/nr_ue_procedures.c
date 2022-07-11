@@ -2554,17 +2554,29 @@ uint8_t nr_get_csi_payload(NR_UE_MAC_INST_t *mac,
   NR_CSI_ResourceConfigId_t csi_ResourceConfigId = csi_reportconfig->resourcesForChannelMeasurement;
   switch(csi_reportconfig->reportQuantity.present) {
     case NR_CSI_ReportConfig__reportQuantity_PR_none:
+        LOG_E(NR_MAC,"Measurement report: none\n");
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_ssb_Index_RSRP:
+        LOG_I(NR_MAC,"Measurement report: rsrp\n");
       n_csi_bits = get_ssb_rsrp_payload(mac,pucch,csi_reportconfig,csi_ResourceConfigId,csi_MeasConfig);
       break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RSRP:
+        LOG_E(NR_MAC,"Measurement report: PR_cri_RSRP not supported\n");
+        break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_PMI_CQI:
+        LOG_E(NR_MAC,"Measurement report: RI_PMI_CQI not supported\n");
+          break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1:
+        LOG_E(NR_MAC,"Measurement report: PR_cri_RI_i1 not suppoerted\n");
+          break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_i1_CQI:
+        LOG_E(NR_MAC,"Measurement report: PR_cri_RI_i1_CQI not suppoerted\n");
+          break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_CQI:
+        LOG_E(NR_MAC,"Measurement report: PR_cri_RI_CQI not suppoerted\n");
+          break;
     case NR_CSI_ReportConfig__reportQuantity_PR_cri_RI_LI_PMI_CQI:
-      LOG_E(NR_MAC,"Measurement report based on CSI-RS not available\n");
+      LOG_E(NR_MAC,"Measurement report PR_cri_RI_LI_PMI_CQI not supported \n");
       break;
     default:
       AssertFatal(1==0,"Invalid CSI report quantity type %d\n",csi_reportconfig->reportQuantity.present);
