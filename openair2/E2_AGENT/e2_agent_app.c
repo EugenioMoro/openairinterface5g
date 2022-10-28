@@ -11,13 +11,8 @@
 
 #include "common/ran_context.h"
 #include "common/utils/LOG/log.h"
+#include "e2_message_handlers.h"
 
-#include "pb_encode.h"
-#include "pb_decode.h"
-
-#include "proto/e2.pb.h"
-#include "E2_requests.h"
-#include "e2_prtbf_common.h"
 
 extern RAN_CONTEXT_t RC;
 
@@ -43,22 +38,34 @@ int e2_agent_init(){
     }
 
     // network init
-    agent_info->listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    setsockopt(agent_info->listenfd, SOL_SOCKET, SO_REUSEADDR, &(agent_info->reuse), sizeof(agent_info->reuse));
+    // create sockets
+    if((agent_info->in_sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+        perror("Failed to create in socket\n");
+        exit(EXIT_FAILURE);
+    }
+    setsockopt(agent_info->in_sockfd, SOL_SOCKET, SO_REUSEADDR, &(agent_info->reuse), sizeof(agent_info->reuse));
 
-    memset(&(agent_info->servaddr), 0, sizeof(agent_info->servaddr));
-    agent_info->servaddr.sin_family = AF_INET;
-    agent_info->servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    agent_info->servaddr.sin_port = htons(1234);
-    if (bind(agent_info->listenfd, (struct sockaddr *) &(agent_info->servaddr), sizeof(agent_info->servaddr)) != 0) {
-        LOG_E(E2_AGENT, "Socket binding error\n");
-        return -1;
+    if((agent_info->out_sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+        perror("Failed to create out socket\n");
+        exit(EXIT_FAILURE);
     }
 
-    if (listen(agent_info->listenfd, 5) != 0) {
-        LOG_E(E2_AGENT, "Socket listening error\n");
-        return -1;
+    memset(&(agent_info->out_sockaddr), 0, sizeof(agent_info->out_sockaddr));
+    memset(&(agent_info->in_sockaddr), 0, sizeof(agent_info->in_sockaddr));
+
+    agent_info->out_sockaddr.sin_family = AF_INET;
+    agent_info->out_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    agent_info->out_sockaddr.sin_port = htons(E2AGENT_OUT_PORT);
+
+    agent_info->in_sockaddr.sin_family = AF_INET;
+    agent_info->in_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    agent_info->in_sockaddr.sin_port = htons(E2AGENT_IN_PORT);
+
+    if (bind(agent_info->in_sockfd, (struct sockaddr *) &(agent_info->in_sockaddr), sizeof(agent_info->in_sockaddr)) != 0) {
+        perror("Failed to bind in socket");
+        exit(EXIT_FAILURE);
     }
+    LOG_E(E2_AGENT, "Agent waiting for UDP datagrams\n");
 
     // create itti task
     if(itti_create_task(TASK_E2_AGENT,e2_agent_task, agent_info) < 0){
@@ -80,79 +87,16 @@ void* e2_heartbeat(void* args) {
 
 void *e2_agent_task(void* args_p){
     e2_agent_info_t* e2_info = args_p;
+    uint8_t recv_buf[E2AGENT_MAX_BUF_SIZE];
+    int rcv_len;
+    unsigned slen;
+    slen = sizeof(e2_info->in_sockaddr);
     itti_mark_task_ready(TASK_E2_AGENT);
     INFINITE_LOOP {
         /* Wait for a client */
-        e2_info->connfd = accept(e2_info->listenfd, NULL, NULL);
-
-        if (e2_info->connfd < 0) {
-            LOG_E(E2_AGENT, "Socket accept error\n");
-            continue;
-        }
-        LOG_I(E2_AGENT, "Got connection\n");
-
-        handle_connection(e2_info->connfd);
-
-        printf("Closing connection.\n");
-
-        close(e2_info->connfd);
+        rcv_len = recvfrom(e2_info->in_sockfd, recv_buf, E2AGENT_MAX_BUF_SIZE, 0, (struct sockaddr *) &(e2_info->in_sockaddr), &slen);
+        LOG_I(E2_AGENT, "Received %d bytes\n", rcv_len);
+        handle_master_message(recv_buf, rcv_len, e2_info->out_sockfd, e2_info->out_sockaddr);
     }
 
-}
-
-
-void build_dummy_response(E2_REQID_t req_id, E2_dummy_response *rsp, int connfd) {
-    rsp->req_id = req_id;
-    strcpy(rsp->mess_string,"Hi, this is a dummy response!!");
-    rsp->result = true;
-}
-
-void build_send_dummy_response(E2_REQID_t req_id, E2_dummy_response* rsp, int connfd){
-    rsp->req_id = 100;
-    rsp->req_id = req_id;
-    strcpy(rsp->mess_string,"Hi, this is a dummy response!!");
-    rsp->result = true;
-    pb_ostream_t output = pb_ostream_from_socket(connfd);
-    if (!pb_encode_delimited(&output, E2_dummy_response_fields, rsp)) {
-        printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
-    }
-    printf("Encoded in %lu bytes\n", output.bytes_written);
-}
-
-void ship_response(pb_msgdesc_t msg_descriptor, void* response, int connfd){
-    pb_ostream_t output = pb_ostream_from_socket(connfd);
-    if (!pb_encode_delimited(&output, &msg_descriptor, response)) {
-        printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
-    }
-    // printf("Encoded in %lu bytes\n", output.bytes_written);
-}
-
-void handle_connection(int connfd) {
-
-    E2_request request = {};
-    pb_istream_t input = pb_istream_from_socket(connfd);
-    if (!pb_decode_delimited(&input, E2_request_fields, &request)) {
-        printf("Decode failed: %s\n", PB_GET_ERROR(&input));
-        return;
-    }
-    printf("Received E2 request id %d\n", request.req_id);
-    switch (request.req_id++) {
-        case E2_REQID_DUMMY1:{
-            E2_dummy_response* rsp = malloc(E2_dummy_response_size);
-            build_dummy_response(E2_REQID_DUMMY1,rsp, connfd);
-            ship_response(E2_dummy_response_msg,rsp,connfd);
-            free(rsp);
-            break;
-        }
-        case E2_REQID_DUMMY2: {
-            E2_dummy_response *rsp = malloc(E2_dummy_response_size);
-            build_dummy_response(E2_REQID_DUMMY2, rsp, connfd);
-            ship_response(E2_dummy_response_msg, rsp, connfd);
-            free(rsp);
-            break;
-        }
-        default:
-            printf("Unrecognized request id %d\n",request.req_id);
-            break;
-    }
 }

@@ -93,7 +93,7 @@ error:
   return -1;
 }
 
-char *itoa(int i) {
+char *my_itoa(int i) {
   char buffer[64];
   int ret;
 

@@ -19,7 +19,7 @@ int hex_string_to_hex_value (uint8_t *hex_value, const char *hex_string, int siz
 void *memcpy1(void *dst,const void *src,size_t n);
 
 
-char *itoa(int i);
+char *my_itoa(int i);
 
 #define findInList(keY, result, list, element_type) {\
     int i;\

@@ -299,5 +299,5 @@ char *make_port_str_from_ueid(const char *base_port_str, int ueid) {
     return NULL;
   }
 
-  return itoa(port);
+  return my_itoa(port);
 }
