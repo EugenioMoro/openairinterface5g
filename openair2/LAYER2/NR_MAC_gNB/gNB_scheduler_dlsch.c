@@ -1198,8 +1198,8 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   }
 
   /* proportional fair scheduling algorithm */
-  //pf_dl(module_id,
-    pf_dl_iab_w(module_id,
+  pf_dl(module_id,
+    //pf_dl_iab_w(module_id,
         frame,
         slot,
         &UE_info->list,

@@ -54,7 +54,7 @@ int e2_agent_init(){
     memset(&(agent_info->in_sockaddr), 0, sizeof(agent_info->in_sockaddr));
 
     agent_info->out_sockaddr.sin_family = AF_INET;
-    agent_info->out_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    agent_info->out_sockaddr.sin_addr.s_addr = inet_addr("172.30.101.108");//INADDR_ANY;
     agent_info->out_sockaddr.sin_port = htons(E2AGENT_OUT_PORT);
 
     agent_info->in_sockaddr.sin_family = AF_INET;

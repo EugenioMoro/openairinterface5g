@@ -1,0 +1,4 @@
+[submodule "openair2/E2_AGENT/oai-oran-protolib"]
+	path = openair2/E2_AGENT/oai-oran-protolib
+	url = https://github.com/wineslab/oai-oran-protolib.git
+	branch = ue_info
