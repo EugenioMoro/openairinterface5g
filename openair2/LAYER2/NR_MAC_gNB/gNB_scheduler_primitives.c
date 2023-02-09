@@ -2515,7 +2515,7 @@ void reset_srs_stats(NR_UE_info_t *UE) {
     UE->mac_stats.srs_stats[0] = '\0';
   }
 }
-
+uint8_t temp_ue_cnt=0;
 //------------------------------------------------------------------------------
 NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConfig_t *CellGroup)
 {
@@ -2602,6 +2602,17 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
 
   LOG_D(NR_MAC, "Add NR rnti %x\n", rntiP);
   dump_nr_list(UE_info->list);
+
+  // this is only temporary, will be substituted by an xapp
+  if(temp_ue_cnt == 0){
+    UE->is_GBR = true;
+    UE->guaranteed_tbs_bytes_dl = 1500;
+    UE->guaranteed_tbs_bytes_ul = 500;
+    LOG_I(NR_MAC, "This ue is gbr\n");
+  } else {
+    UE->is_GBR = false;
+  }
+  ++temp_ue_cnt;
   return (UE);
 }
 

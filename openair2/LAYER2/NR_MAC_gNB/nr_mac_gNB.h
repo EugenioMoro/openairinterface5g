@@ -709,6 +709,10 @@ typedef struct {
   NR_gNB_UCI_STATS_t uci_statS;
   float ul_thr_ue;
   float dl_thr_ue;
+
+  bool is_GBR; 
+  uint32_t guaranteed_tbs_bytes_ul;
+  uint32_t guaranteed_tbs_bytes_dl;
 } NR_UE_info_t;
 
 typedef struct {

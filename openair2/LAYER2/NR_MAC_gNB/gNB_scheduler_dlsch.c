@@ -594,7 +594,9 @@ void pf_dl(module_id_t module_id,
 
       /* Check DL buffer and skip this UE if no bytes and no TA necessary */
       if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024)
-        continue;
+        // but if ue is gbr do not skip to emulate sps
+        //if(!(UE->is_GBR))
+          continue;
 
       /* Calculate coeff */
       const NR_bler_options_t *bo = &mac->dl_bler;
@@ -623,6 +625,9 @@ void pf_dl(module_id_t module_id,
             UE->rnti, b, UE->dl_thr_ue, tbs, coeff_ue);
       /* Create UE_sched list for UEs eligible for new transmission*/
       UE_sched[curUE].coef=coeff_ue;
+      if(UE->is_GBR){
+        UE_sched[curUE].coef=__FLT_MAX__;
+      }
       UE_sched[curUE].UE=UE;
       curUE++;
     }
@@ -647,6 +652,7 @@ void pf_dl(module_id_t module_id,
       mac->cset0_bwp_size :
       dl_bwp->BWPSize;
     int rbStart = 0; // start wrt BWPstart
+    LOG_D(NR_MAC,"UE BW: %d\n", bwpSize);
 
     if (sched_ctrl->available_dl_harq.head < 0) {
       LOG_D(MAC, "RNTI %04x has no free HARQ process, skipping\n", iterator->UE->rnti);
@@ -724,21 +730,40 @@ void pf_dl(module_id_t module_id,
     // PDUs, we replace with 3 * numPDUs
     const int oh = 3 * 4 + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
     //const int oh = 3 * sched_ctrl->dl_pdus_total + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
+    uint32_t bytes_to_schedule;
+    if(iterator->UE->is_GBR){
+      bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_dl;
+    } else {
+      bytes_to_schedule = sched_ctrl->num_total_bytes + oh;
+    }
     nr_find_nb_rb(sched_pdsch->Qm,
                   sched_pdsch->R,
                   sched_pdsch->nrOfLayers,
                   tda_info->nrOfSymbols,
                   sched_pdsch->dmrs_parms.N_PRB_DMRS * sched_pdsch->dmrs_parms.N_DMRS_SLOT,
-                  sched_ctrl->num_total_bytes + oh,
+                  bytes_to_schedule,
                   min_rbSize,
                   max_rbSize,
                   &TBS,
                   &rbSize);
+    
+    /*         
+    sched_pdsch->tb_size = nr_compute_tbs(sched_pdsch->Qm,
+                    sched_pdsch->R,
+                    rbSize,
+                    tda_info->nrOfSymbols,
+                    sched_pdsch->dmrs_parms.N_PRB_DMRS * sched_pdsch->dmrs_parms.N_DMRS_SLOT,
+                    0,
+                    0,
+                    sched_pdsch->nrOfLayers);
+    
+    */
     sched_pdsch->rbSize = rbSize;
     sched_pdsch->rbStart = rbStart;
-    sched_pdsch->tb_size = TBS;
     /* transmissions: directly allocate */
     n_rb_sched -= sched_pdsch->rbSize;
+    sched_pdsch->tb_size = TBS;
+    //printf("%d\n", TBS);
 
     for (int rb = 0; rb < sched_pdsch->rbSize; rb++)
       rballoc_mask[rb + sched_pdsch->rbStart] ^= slbitmap;
@@ -791,7 +816,8 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
   /* Retrieve amount of data to send for this UE */
   nr_store_dlsch_buffer(module_id, frame, slot);
-  /* proportional fair scheduling algorithm */
+
+
   pf_dl(module_id,
         frame,
         slot,

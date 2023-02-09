@@ -107,7 +107,7 @@ void nr_drb_config(struct NR_RLC_Config *rlc_Config, NR_RLC_Config_PR rlc_config
       *rlc_Config->choice.um_Bi_Directional->ul_UM_RLC.sn_FieldLength = NR_SN_FieldLengthUM_size12;
       rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength  = calloc(1, sizeof(*rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength));
       *rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.sn_FieldLength = NR_SN_FieldLengthUM_size12;
-      rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.t_Reassembly    = NR_T_Reassembly_ms15;
+      rlc_Config->choice.um_Bi_Directional->dl_UM_RLC.t_Reassembly    = 30;//NR_T_Reassembly_ms15;
       break;
     case NR_RLC_Config_PR_am:
       // RLC AM Bearer configuration
@@ -932,6 +932,7 @@ static void add_drb(int rnti, struct NR_DRB_ToAddMod *s, struct NR_RLC_BearerCon
     add_drb_am(rnti, s, rlc_BearerConfig);
     break;
   case NR_RLC_Config_PR_um_Bi_Directional:
+ LOG_E(RLC, "Adding a UM bearer");
     add_drb_um(rnti, s, rlc_BearerConfig);
     break;
   default:

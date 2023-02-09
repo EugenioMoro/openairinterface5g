@@ -1683,7 +1683,11 @@ void pf_ul(module_id_t module_id,
     float coeff_ue = (float) tbs / UE->ul_thr_ue;
     LOG_D(NR_MAC,"rnti %04x b %d, ul_thr_ue %f, tbs %d, coeff_ue %f\n",
           UE->rnti, b, UE->ul_thr_ue, tbs, coeff_ue);
+    if (UE->is_GBR){
+      UE_sched[curUE].coef = __FLT_MAX__;
+    } else {
     UE_sched[curUE].coef=coeff_ue;
+    }
     UE_sched[curUE].UE=UE;
     curUE++;
   }
@@ -1753,16 +1757,25 @@ void pf_ul(module_id_t module_id,
     update_ul_ue_R_Qm(sched_pusch->mcs, current_BWP->mcs_table, current_BWP->pusch_Config, &sched_pusch->R, &sched_pusch->Qm);
     uint16_t rbSize = 0;
     uint32_t TBS = 0;
+    uint32_t bytes_to_schedule;
+    if (iterator->UE->is_GBR){
+      bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_ul;
+    } else {
+      bytes_to_schedule = B;
+    }
     nr_find_nb_rb(sched_pusch->Qm,
                   sched_pusch->R,
                   1, // layers
                   sched_pusch->tda_info.nrOfSymbols,
                   sched_pusch->dmrs_info.N_PRB_DMRS * sched_pusch->dmrs_info.num_dmrs_symb,
-                  B,
+                  bytes_to_schedule,
                   min_rb,
                   max_rbSize,
                   &TBS,
                   &rbSize);
+    //if (iterator->UE->is_GBR){
+    //  LOG_I(NR_MAC,"Given %d rbs\n",rbSize);
+    //}
 
     sched_pusch->rbSize = rbSize;
     sched_pusch->tb_size = TBS;
