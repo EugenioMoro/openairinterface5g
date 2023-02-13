@@ -499,6 +499,9 @@ int logInit (void)
   register_log_component("ITTI","log",ITTI);
   register_log_component("UTIL","log",UTIL);
 
+  // log component for the e2 agent
+    register_log_component("E2_AGENT","log", E2_AGENT);
+
   for (int i=0 ; log_level_names[i].name != NULL ; i++)
     g_log->level2string[i]           = toupper(log_level_names[i].name[0]); // uppercased first letter of level name
 

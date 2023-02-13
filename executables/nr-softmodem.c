@@ -80,6 +80,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "gnb_paramdef.h"
 #include <openair3/ocp-gtpu/gtp_itf.h>
 #include "nfapi/oai_integration/vendor_ext.h"
+#include <E2_AGENT/e2_agent_app.h>
 
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
@@ -582,7 +583,9 @@ int main( int argc, char **argv ) {
 
   // don't create if node doesn't connect to RRC/S1/GTP
   int ret=create_gNB_tasks(1);
+  printf("------------------ calling e2 agent init...\n");
   AssertFatal(ret==0,"cannot create ITTI tasks\n");
+  e2_agent_init();
 
   // init UE_PF_PO and mutex lock
   pthread_mutex_init(&ue_pf_po_mutex, NULL);
