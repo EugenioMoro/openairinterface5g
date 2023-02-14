@@ -763,6 +763,11 @@ void pf_dl(module_id_t module_id,
     /* transmissions: directly allocate */
     n_rb_sched -= sched_pdsch->rbSize;
     sched_pdsch->tb_size = TBS;
+
+    // update avg tbs dl
+    const float s_coeff = 0.1F;
+    iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff) + s_coeff*TBS;
+
     //printf("%d\n", TBS);
 
     for (int rb = 0; rb < sched_pdsch->rbSize; rb++)

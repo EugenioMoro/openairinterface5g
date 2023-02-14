@@ -713,6 +713,10 @@ typedef struct {
   bool is_GBR; 
   uint32_t guaranteed_tbs_bytes_ul;
   uint32_t guaranteed_tbs_bytes_dl;
+
+  float avg_tbs_1s_dl;
+  float avg_tbs_1s_ul;
+
 } NR_UE_info_t;
 
 typedef struct {

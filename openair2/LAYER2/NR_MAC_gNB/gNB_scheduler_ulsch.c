@@ -1777,6 +1777,10 @@ void pf_ul(module_id_t module_id,
     //  LOG_I(NR_MAC,"Given %d rbs\n",rbSize);
     //}
 
+    // update avg tbs ul
+    const float s_coeff = 0.1F;
+    iterator->UE->avg_tbs_1s_ul = iterator->UE->avg_tbs_1s_ul * (1-s_coeff) + s_coeff*TBS;
+
     sched_pusch->rbSize = rbSize;
     sched_pusch->tb_size = TBS;
     LOG_D(NR_MAC,"rbSize %d (max_rbSize %d), TBS %d, est buf %d, sched_ul %d, B %d, CCE %d, num_dmrs_symb %d, N_PRB_DMRS %d\n",

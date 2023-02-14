@@ -12,61 +12,116 @@ extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
 
 int gnb_id = 0;
 int something = 0;
+
+
+
 void handle_subscription(RANMessage* in_mess){
-    printf("Not implemented\n");
+    LOG_E(E2_AGENT,"Not implemented\n");
     assert(0!=0);
+    ran_message__free_unpacked(in_mess,NULL);
 }
+/*
+this function just basically prints out the parameters in the request and passes the in_mess to the response generator
+*/
 void handle_indication_request(RANMessage* in_mess,int out_socket, sockaddr_in peeraddr){
-    printf("Indication request for %lu parameters:\n", in_mess->ran_indication_request->n_target_params);
+    LOG_I(E2_AGENT,"Indication request for %lu parameters:\n", in_mess->ran_indication_request->n_target_params);
     for(int par_i=0; par_i<in_mess->ran_indication_request->n_target_params; par_i++){
-        printf("\tParameter id %d requested (a.k.a %s)\n",\
+        LOG_I(E2_AGENT,"\tParameter id %d requested (a.k.a %s)\n",\
         in_mess->ran_indication_request->target_params[par_i],\
         get_enum_name(in_mess->ran_indication_request->target_params[par_i]));
     }
-    handle_indication_response(in_mess, out_socket,peeraddr);
+    build_indication_response(in_mess, out_socket, peeraddr);
 }
-void handle_indication_response(RANMessage* in_mess, int out_socket, sockaddr_in servaddr){
-    // build and fill indication response with target parameters from indication request
+
+/*
+this function builds and sends the indication response based on the map inside the in_mess
+in_mess is cleared here
+*/
+void build_indication_response(RANMessage* in_mess, int out_socket, sockaddr_in servaddr){
+
     RANIndicationResponse rsp = RAN_INDICATION_RESPONSE__INIT;
     RANParamMapEntry **map;
     void* buf;
     unsigned buflen, i;
-    map = malloc(sizeof(RANParamMapEntry*) * in_mess->ran_indication_request->n_target_params);
+
+    // allocate space for the pointers inside the map, which is NULL terminated so it needs 1 additional last pointer
+    map = malloc(sizeof(RANParamMapEntry*) * (in_mess->ran_indication_request->n_target_params + 1));
+
+    // now build every element inside the map
     for(i=0; i<in_mess->ran_indication_request->n_target_params; i++){
+
+        // allocate space for this entry and initialize
         map[i] = malloc(sizeof(RANParamMapEntry));
         ran_param_map_entry__init(map[i]);
+
+        // assign key
         map[i]->key=in_mess->ran_indication_request->target_params[i];
-        ran_read_new(map[i]->key, map[i]);
+
+        // read the parameter and save it in the map
+        ran_read(map[i]->key, map[i]);
     }
+    // the map is ready, add the null terminator
+    map[in_mess->ran_indication_request->n_target_params] = NULL;
+
     rsp.n_param_map=in_mess->ran_indication_request->n_target_params;
     rsp.param_map=map;
     buflen = ran_indication_response__get_packed_size(&rsp);
     buf = malloc(buflen);
     ran_indication_response__pack(&rsp,buf);
-    printf("Sending indication response\n");
+    LOG_I(E2_AGENT,"Sending indication response\n");
     unsigned slen = sizeof(servaddr);
     int rev = sendto(out_socket, (const char *)buf, buflen,
                      MSG_CONFIRM, (const struct sockaddr *) &servaddr,
                      slen);
-    printf("Sent %d bytes, buflen was %u\n",rev, buflen);
-    /*
-    printf("Printing buffer for debug pourposes:\n");
-    uint8_t* b = (uint8_t*) buf;
-    for (int i=0; i<buflen; i++){
-        printf(" %hhx ", b[i]);
+    LOG_I(E2_AGENT,"Sent %d bytes, buflen was %u\n",rev, buflen);
+
+    // free map and buffer (rsp not freed because in the stack)
+    free_ran_param_map(map);
+    free(buf);
+    // free incoming ran message
+    ran_message__free_unpacked(in_mess,NULL);
+}
+
+/*
+this function frees a map through introspection, maps !!MUST!! be NULL terminated
+*/
+void free_ran_param_map(RANParamMapEntry **map){
+    int i = 0;
+    while(map[i] != NULL){
+        // we first need to clear whatever is inside the map entry, we need to consider all the possible value types
+        switch(map[i]->value_case){
+            case RAN_PARAM_MAP_ENTRY__VALUE_INT64_VALUE:
+                // there is no pointer inside the entry to free in this case
+                break;
+            case RAN_PARAM_MAP_ENTRY__VALUE_STRING_VALUE:
+                // free the string and then the entry
+                free(map[i]->string_value);
+                break;
+            case RAN_PARAM_MAP_ENTRY__VALUE_UE_LIST:
+                // in this case we free the ue list first
+                free_ue_list(map[i]->ue_list);
+                break;
+            case RAN_PARAM_MAP_ENTRY__VALUE__NOT_SET:
+                // nothing to do here, skip to default
+            default:
+                break;
+        }
+        // now we can free the entry
+        free(map[i]);
+        i++;
     }
-    printf("\n");
-    */
 }
 
 void handle_control(RANMessage* in_mess){
     // loop tarhet params and apply
     for(int i=0; i<in_mess->ran_control_request->n_target_param_map; i++){
-        printf("Applying target parameter %s with value %s\n",\
+        LOG_I(E2_AGENT,"Applying target parameter %s with value %s\n",\
         get_enum_name(in_mess->ran_control_request->target_param_map[i]->key),\
         in_mess->ran_control_request->target_param_map[i]->string_value);
         ran_write(in_mess->ran_control_request->target_param_map[i]);
     }
+    // free incoming ran message
+    ran_message__free_unpacked(in_mess,NULL);
 }
 
 const char* get_enum_name(RANParameter ran_par_enum){
@@ -93,25 +148,11 @@ void ran_write(RANParamMapEntry* target_param_map_entry){
             something = atoi(target_param_map_entry->string_value);
             break;
         default:
-            printf("ERROR: cannot write RAN, unrecognized target param %d\n", target_param_map_entry->key);
+            LOG_E(E2_AGENT,"ERROR: cannot write RAN, unrecognized target param %d\n", target_param_map_entry->key);
     }
 }
-/*
-char* ran_read(RANParameter ran_par_enum){
-    switch (ran_par_enum)
-    {
-        case RAN_PARAMETER__GNB_ID:
-            return my_itoa(gnb_id);
-        case RAN_PARAMETER__SOMETHING:
-            return my_itoa(something);
-        default:
-            printf("unrecognized param %d\n",ran_par_enum);
-            assert(0!=0);
-    }
-}
- */
 
-inline char* mymy_itoa(int i){
+char* int_to_charray(int i){
     int length = (snprintf(NULL, 0,"%d",i)+1);
     char* ret = malloc(length*sizeof(char));
     sprintf(ret, "%d", i);
@@ -121,47 +162,54 @@ inline char* mymy_itoa(int i){
 void handle_master_message(void* buf, int buflen, int out_socket, struct sockaddr_in servaddr){
     RANMessage* in_mess = ran_message__unpack(NULL, (size_t)buflen, buf);
     if (!in_mess){
-        printf("error decoding received message, printing for debug:\n");
+        LOG_E(E2_AGENT,"error decoding received message, printing for debug:\n");
         for(int i=0;i<buflen; i++){
             uint8_t* tempbuf = (uint8_t*) buf;
-            printf(" %hhx ", tempbuf[i]);
+            LOG_E(E2_AGENT," %hhx ", tempbuf[i]);
         }
-        printf("\n");
+        LOG_E(E2_AGENT,"\n");
         return;
     }
-    printf("ran message id %d\n", in_mess->msg_type);
+    LOG_I(E2_AGENT,"ran message id %d\n", in_mess->msg_type);
     switch(in_mess->msg_type){
         case RAN_MESSAGE_TYPE__SUBSCRIPTION:
-            printf("Subcription message received\n");
+            LOG_I(E2_AGENT,"Subcription message received\n");
             handle_subscription(in_mess);
             break;
         case RAN_MESSAGE_TYPE__INDICATION_REQUEST:
-            printf("Indication request message received\n");
+            LOG_I(E2_AGENT,"Indication request message received\n");
             handle_indication_request(in_mess, out_socket, servaddr);
             break;
         case RAN_MESSAGE_TYPE__INDICATION_RESPONSE:
-            printf("Indication response message received\n");
-            handle_indication_response(in_mess, out_socket, servaddr);
+            LOG_I(E2_AGENT,"Indication response message received\n");
+            build_indication_response(in_mess, out_socket, servaddr);
             break;
         case RAN_MESSAGE_TYPE__CONTROL:
-            printf("Control message received\n");
+            LOG_I(E2_AGENT,"Control message received\n");
             handle_control(in_mess);
             break;
         default:
-            printf("Unrecognized message type\n");
+            LOG_I(E2_AGENT,"Unrecognized message type\n");
+            ran_message__free_unpacked(in_mess,NULL);
+            break;
     }
 }
 
-// TODO: Update get_ue_list() to work with new gnb data structures
-/*
+
 UeListM* get_ue_list(){
     // init ue list
     UeListM* ue_list_m = malloc(sizeof(UeListM));
     ue_list_m__init(ue_list_m);
 
     NR_UEs_t *UE_info_gnb = &RC.nrmac[0]->UE_info;
-    int num_ues = 1;//&RC.nrmac[0]->//UE_info_gnb->;
-    //NR_UE_sched_ctrl_t *sched_ctrl = &UE_info->UE_sched_ctrl[UE_id];
+
+    // count how many ues are connected
+    int num_ues;
+    for(num_ues = 0; num_ues < MAX_MOBILES_PER_GNB; num_ues++){
+        if(UE_info_gnb->list[num_ues] == NULL){
+            break;
+        }
+    }
 
     // insert n ues
     ue_list_m->connected_ues = num_ues;
@@ -169,96 +217,69 @@ UeListM* get_ue_list(){
     if(num_ues == 0){
         return ue_list_m;
     }
-
+    NR_UE_info_t* curr_ue;
     // build list of ue_info_m
     UeInfoM** ue_info_list;
-    ue_info_list = malloc(sizeof(UeInfoM)*num_ues);
+    ue_info_list = malloc(sizeof(UeInfoM*)*(num_ues+1)); // allocating space for 1 additional element which will ne NULL (terminator element)
     for(int i = 0; i<num_ues; i++){
         // init list
         ue_info_list[i] = malloc(sizeof(UeInfoM));
         ue_info_m__init(ue_info_list[i]);
+        curr_ue = UE_info_gnb->list[i];
 
-        // recover gnb info
-        NR_UE_sched_ctrl_t *sched_ctrl = &UE_info_gnb->UE_sched_ctrl[i];
-        NR_mac_stats_t *mac_stats = &UE_info_gnb->mac_stats[i];
+        // add rnti
+        ue_info_list[i]->rnti = curr_ue->rnti;
+        
+        // add grb info
+        ue_info_list[i]->has_is_gbr = 1;
+        ue_info_list[i]->is_gbr = curr_ue->is_GBR;
 
-        ue_info_list[i]->rnti=UE_info_gnb->rnti[i];
-        ue_info_list[i]->dlsch_errors=mac_stats->dlsch_errors;
-        ue_info_list[i]->dlsch_total_bytes=mac_stats->dlsch_total_bytes;
-        ue_info_list[i]->dlsch_current_bytes=mac_stats->dlsch_current_bytes;
-        ue_info_list[i]->ulsch_errors=mac_stats->ulsch_errors;
-        ue_info_list[i]->ulsch_total_bytes_rx=mac_stats->ulsch_total_bytes_rx;
-        ue_info_list[i]->num_rsrp_meas=mac_stats->num_rsrp_meas;
-        ue_info_list[i]->sched_ul_bytes=sched_ctrl->sched_ul_bytes;
-        ue_info_list[i]->estimated_ul_buffer=sched_ctrl->estimated_ul_buffer;
-        ue_info_list[i]->num_total_bytes=sched_ctrl->num_total_bytes;
-        ue_info_list[i]->raw_rssi=sched_ctrl->raw_rssi;
-        ue_info_list[i]->pusch_snrx10=sched_ctrl->pusch_snrx10;
-        ue_info_list[i]->pucch_snrx10=sched_ctrl->pucch_snrx10;
-        ue_info_list[i]->ul_rssi=sched_ctrl->ul_rssi;
-        ue_info_list[i]->rsrp = 0; // get_nr_RSRP(0,0,0) - 17; // 17 is an offset found somewhere in the code
+        // add tbs info
+        ue_info_list[i]->has_tbs_avg_dl = 1;
+        ue_info_list[i]->tbs_avg_dl = curr_ue->avg_tbs_1s_dl;
+        ue_info_list[i]->has_tbs_avg_ul = 1;
+        ue_info_list[i]->tbs_avg_ul = curr_ue->avg_tbs_1s_ul;
     }
+    // add a null terminator to the list
+    ue_info_list[num_ues] = NULL;
     // assgin ue info pointer
     ue_list_m->ue_info = ue_info_list;
-
-    return ue_list_m;
-}
-*/
-
-UeListM* get_ue_list(){
-    // init ue list
-    UeListM* ue_list_m = malloc(sizeof(UeListM));
-    ue_list_m__init(ue_list_m);
-
-    // insert n ues
-    ue_list_m->connected_ues = 2;
-    ue_list_m->n_ue_info = 2;
-
-    // build list of ue_info_m
-    UeInfoM** ue_info_list;
-    ue_info_list = malloc(sizeof(UeInfoM)*2);
-    for(int i = 0; i<2; i++){
-        ue_info_list[i] = malloc(sizeof(UeInfoM));
-        ue_info_m__init(ue_info_list[i]);
-        ue_info_list[i]->rnti=i;
-        ue_info_list[i]->dlsch_errors=i;
-        ue_info_list[i]->dlsch_total_bytes=i;
-        ue_info_list[i]->dlsch_current_bytes=i;
-        ue_info_list[i]->ulsch_errors=i;
-        ue_info_list[i]->ulsch_total_bytes_rx=i;
-        ue_info_list[i]->num_rsrp_meas=i;
-        ue_info_list[i]->sched_ul_bytes=i;
-        ue_info_list[i]->estimated_ul_buffer=i;
-        ue_info_list[i]->num_total_bytes=i;
-        ue_info_list[i]->raw_rssi=i;
-        ue_info_list[i]->pusch_snrx10=i;
-        ue_info_list[i]->pucch_snrx10=i;
-        ue_info_list[i]->ul_rssi=i;
-    }
-    // assgin ue info pointer
-    ue_list_m->ue_info = ue_info_list;
-
     return ue_list_m;
 }
 
+// careful, this function leaves dangling pointers - not a big deal in this case though 
+void free_ue_list(UeListM* ue_list_m){
+    if(ue_list_m->connected_ues > 0){
+        // free the ue list content first
+        int i=0;
+        while(ue_list_m->ue_info[i] != NULL){ // when we reach NULL we have found the terminator (no need to free the terminator because it hasn't been allocated)
+            free(ue_list_m->ue_info[i]);
+            i++;
+        }
+        // then free the list
+        free(ue_list_m->ue_info);
+    }
+    // finally free the outer data structure
+    free(ue_list_m);
+}
 
-void ran_read_new(RANParameter ran_par_enum, RANParamMapEntry* map_entry){
+void ran_read(RANParameter ran_par_enum, RANParamMapEntry* map_entry){
     switch (ran_par_enum)
     {
         case RAN_PARAMETER__GNB_ID:
             map_entry->value_case=RAN_PARAM_MAP_ENTRY__VALUE_STRING_VALUE;
-            map_entry->string_value = mymy_itoa(gnb_id);
+            map_entry->string_value = int_to_charray(gnb_id);
             break;
         case RAN_PARAMETER__SOMETHING:
             map_entry->value_case=RAN_PARAM_MAP_ENTRY__VALUE_STRING_VALUE;
-            map_entry->string_value = mymy_itoa(something);
+            map_entry->string_value = int_to_charray(something);
             break;
         case RAN_PARAMETER__UE_LIST:
             map_entry->value_case=RAN_PARAM_MAP_ENTRY__VALUE_UE_LIST;
             map_entry->ue_list = get_ue_list();
             break;
         default:
-            printf("unrecognized param %d\n",ran_par_enum);
+            LOG_I(E2_AGENT,"unrecognized param %d\n",ran_par_enum);
             assert(0!=0);
     }
 }
