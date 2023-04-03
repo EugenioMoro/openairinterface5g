@@ -147,9 +147,61 @@ void ran_write(RANParamMapEntry* target_param_map_entry){
         case RAN_PARAMETER__SOMETHING:
             something = atoi(target_param_map_entry->string_value);
             break;
+        case RAN_PARAMETER__UE_LIST: // if we receive a ue list message we need to apply its content
+            apply_ue_info(target_param_map_entry->ue_list);
+            break;
         default:
             LOG_E(E2_AGENT,"ERROR: cannot write RAN, unrecognized target param %d\n", target_param_map_entry->key);
     }
+}
+
+void apply_ue_info(UeListM* ue_list){
+    LOG_I(E2_AGENT,"in apply_ue_info, ue list size %d\n", ue_list->n_ue_info);
+    // loop the ues and apply what needed to each
+    for(int ue=0; ue<ue_list->n_ue_info; ue++){
+        LOG_I(E2_AGENT,"in apply_ue_info loop ue %d\n",ue);
+        // apply gbr
+        set_gbr_ue(ue_list->ue_info[ue]->rnti,
+            ue_list->ue_info[ue]->tbs_dl_toapply,
+            ue_list->ue_info[ue]->tbs_ul_toapply,
+            ue_list->ue_info[ue]->is_gbr);
+
+        // more stuff later when needed     
+    }
+}
+
+void set_gbr_ue(rnti_t rnti, float tbs_dl, float tbs_ul, bool is_GBR){
+    LOG_I(E2_AGENT,"in set_gbr_ue\n");
+    // acquire mac layer mutex 
+    NR_UEs_t *UE_info_gnb = &RC.nrmac[0]->UE_info;
+    pthread_mutex_lock(&UE_info_gnb->mutex);
+
+    // iterate ue list until rnti is found
+    NR_UE_info_t **UE_list = UE_info_gnb->list;
+    bool rnti_not_found = true;
+    UE_iterator(UE_list, UE) {
+        LOG_I(E2_AGENT,"in set_gbr_ue ue iterator\n");
+        if(UE->rnti == rnti){
+            LOG_I(E2_AGENT,"in set_gbr_ue rnti found\n");
+            // set gbr
+            UE->is_GBR = is_GBR;
+
+            // if this ue is gbr, then set tbs size too
+            UE->guaranteed_tbs_bytes_dl = tbs_dl;
+            UE->guaranteed_tbs_bytes_ul = tbs_ul;
+            rnti_not_found = false;
+            break;
+            
+        } else {
+            continue;
+        }
+    }
+    if(rnti_not_found){
+        LOG_E(E2_AGENT, "RNTI %u not found\n", rnti);
+    }
+
+    // release mutex
+    pthread_mutex_unlock(&UE_info_gnb->mutex);
 }
 
 char* int_to_charray(int i){

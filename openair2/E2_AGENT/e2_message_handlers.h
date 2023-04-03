@@ -35,3 +35,7 @@ float_t get_nr_RSRP(module_id_t Mod_id,uint8_t CC_id,uint8_t gNB_index);
 // functions to free memory
 void free_ran_param_map(RANParamMapEntry **map);
 void free_ue_list(UeListM* ue_list_m);
+
+// specific ran write functions
+void set_gbr_ue(rnti_t rnti, float tbs_dl, float tbs_ul, bool is_GBR);
+void apply_ue_info(UeListM* ue_list);
