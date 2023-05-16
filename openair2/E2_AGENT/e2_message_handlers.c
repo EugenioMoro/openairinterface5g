@@ -239,6 +239,11 @@ UeListM* get_ue_list(){
         ue_info_list[i]->tbs_avg_dl = curr_ue->avg_tbs_1s_dl;
         ue_info_list[i]->has_tbs_avg_ul = 1;
         ue_info_list[i]->tbs_avg_ul = curr_ue->avg_tbs_1s_ul;
+        
+        NR_UE_sched_ctrl_t *sched_ctrl = &(curr_ue->UE_sched_ctrl);
+        ue_info_list[i]->has_dl_mac_buffer_occupation=1;
+        ue_info_list[i]->dl_mac_buffer_occupation = sched_ctrl->num_total_bytes;
+
     }
     // add a null terminator to the list
     ue_info_list[num_ues] = NULL;
