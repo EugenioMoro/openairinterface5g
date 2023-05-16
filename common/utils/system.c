@@ -107,6 +107,14 @@ int checkIfInsideContainer(void) {
   return !system("egrep -q 'libpod|podman|kubepods'  /proc/self/cgroup");
 }
 
+int checkIfInsideLXC(void){
+ int ret = system("[ -n \"$(grep 'kthreadd' /proc/2/status 2>/dev/null)\" ]");
+ if(ret != 0){
+    printf("LXC container detected\n");
+ } 
+return ret;
+}
+
 /********************************************************************/
 /* background process                                               */
 /********************************************************************/
@@ -236,8 +244,10 @@ void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name,
     if (checkIfGenericKernelOnFedora())
       if (checkIfInsideContainer())
         settingPriority = 0;
-  
-  if (settingPriority) {
+  if(checkIfInsideLXC())
+     settingPriority = 0;
+
+  if (1) {
     ret=pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
     AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
     ret=pthread_attr_setschedpolicy(&attr, SCHED_OAI);
@@ -258,6 +268,8 @@ void threadCreate(pthread_t* t, void * (*func)(void*), void * param, char* name,
     ret=pthread_attr_setschedparam(&attr, &sparam);
     AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   }
+  ret=pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
   
   ret=pthread_create(t, &attr, func, param);
   AssertFatal(ret==0,"ret: %d, errno: %d\n",ret, errno);
