@@ -39,3 +39,4 @@ void free_ue_list(UeListM* ue_list_m);
 // specific ran write functions
 void set_gbr_ue(rnti_t rnti, float tbs_dl, float tbs_ul, bool is_GBR);
 void apply_ue_info(UeListM* ue_list);
+void apply_max_cell_prb(int max_prb);

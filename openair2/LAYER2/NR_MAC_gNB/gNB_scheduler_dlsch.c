@@ -45,6 +45,9 @@
 #include "executables/softmodem-common.h"
 #include "../../../nfapi/oai_integration/vendor_ext.h"
 
+/*E2 AGENT*/
+#include "E2_AGENT/e2_agent_app.h"
+
 ////////////////////////////////////////////////////////
 /////* DLSCH MAC PDU generation (6.1.2 TS 38.321) */////
 ////////////////////////////////////////////////////////
@@ -52,6 +55,8 @@
 #define HALFWORD 16
 #define WORD 32
 //#define SIZE_OF_POINTER sizeof (void *)
+
+#define TRUE_GBR_SCHEDULER 0 // 0 is false, >0 is true
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
 
@@ -731,11 +736,21 @@ void pf_dl(module_id_t module_id,
     const int oh = 3 * 4 + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
     //const int oh = 3 * sched_ctrl->dl_pdus_total + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
     uint32_t bytes_to_schedule;
+
+    
     if(iterator->UE->is_GBR){
-      bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_dl;
+      if(TRUE_GBR_SCHEDULER){
+        /* in a true gbr scheduler, if the bytes in buffer are less than the guaranteed tbs
+        then we simply schedule those bytes. If they are more, then */
+        bytes_to_schedule = min(iterator->UE->guaranteed_tbs_bytes_dl,sched_ctrl->num_total_bytes + oh);
+      } else {
+        bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_dl;
+      }
     } else {
       bytes_to_schedule = sched_ctrl->num_total_bytes + oh;
     }
+    
+
     nr_find_nb_rb(sched_pdsch->Qm,
                   sched_pdsch->R,
                   sched_pdsch->nrOfLayers,
@@ -806,8 +821,18 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
 
   const int coresetid = sched_ctrl->coreset->controlResourceSetId;
 
-  const uint16_t bwpSize = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_size : current_BWP->BWPSize;
+  uint16_t bwpSize = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_size : current_BWP->BWPSize;
   const uint16_t BWPStart = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_start : current_BWP->BWPStart;
+
+  // LOG_E(NR_MAC, "Bwpsize standard is %u, while xapp says %d\n", bwpSize, &RC.nrmac[module_id]->max_prbs_allocable_dl);
+
+  pthread_mutex_lock(&e2_agent_db->mutex);
+  // LOG_E(NR_MAC, "xapp says %d\n", e2_agent_db->max_prb);
+  if (e2_agent_db->max_prb > -1){
+    bwpSize = min(bwpSize, e2_agent_db->max_prb);
+    // LOG_E(NR_MAC, "Setting bwpsize to %u\n", bwpSize);
+  }
+  pthread_mutex_unlock(&e2_agent_db->mutex);
 
   const uint16_t slbitmap = SL_to_bitmap(startSymbolIndex, nrOfSymbols);
   uint16_t *vrb_map = RC.nrmac[module_id]->common_channels[CC_id].vrb_map;

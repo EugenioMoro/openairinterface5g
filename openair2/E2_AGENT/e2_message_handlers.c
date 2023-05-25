@@ -7,13 +7,13 @@
 
 #include "PHY/defs_nr_UE.h"
 #include "PHY/phy_extern_nr_ue.h"
+#include "e2_agent_app.h"
+
 extern RAN_CONTEXT_t RC;
 extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
 
 int gnb_id = 0;
 int something = 0;
-
-
 
 void handle_subscription(RANMessage* in_mess){
     LOG_E(E2_AGENT,"Not implemented\n");
@@ -113,11 +113,11 @@ void free_ran_param_map(RANParamMapEntry **map){
 }
 
 void handle_control(RANMessage* in_mess){
-    // loop tarhet params and apply
+    // loop target params and apply
+    LOG_I(E2_AGENT,"handle_control called\n");
     for(int i=0; i<in_mess->ran_control_request->n_target_param_map; i++){
-        LOG_I(E2_AGENT,"Applying target parameter %s with value %s\n",\
-        get_enum_name(in_mess->ran_control_request->target_param_map[i]->key),\
-        in_mess->ran_control_request->target_param_map[i]->string_value);
+        LOG_I(E2_AGENT,"Applying target parameter %s\n",\
+        get_enum_name(in_mess->ran_control_request->target_param_map[i]->key));
         ran_write(in_mess->ran_control_request->target_param_map[i]);
     }
     // free incoming ran message
@@ -133,12 +133,15 @@ const char* get_enum_name(RANParameter ran_par_enum){
             return "something";
         case RAN_PARAMETER__UE_LIST:
             return "ue_list";
+        case RAN_PARAMETER__MAX_PRB:
+            return "max_prb";
         default:
             return "unrecognized param";
     }
 }
 
 void ran_write(RANParamMapEntry* target_param_map_entry){
+    LOG_I(E2_AGENT,"ran_write called\n");
     switch (target_param_map_entry->key)
     {
         case RAN_PARAMETER__GNB_ID:
@@ -150,9 +153,20 @@ void ran_write(RANParamMapEntry* target_param_map_entry){
         case RAN_PARAMETER__UE_LIST: // if we receive a ue list message we need to apply its content
             apply_ue_info(target_param_map_entry->ue_list);
             break;
+        case RAN_PARAMETER__MAX_PRB:
+            apply_max_cell_prb(target_param_map_entry->int64_value);
+            break;
         default:
             LOG_E(E2_AGENT,"ERROR: cannot write RAN, unrecognized target param %d\n", target_param_map_entry->key);
     }
+}
+
+void apply_max_cell_prb(int max_prb){
+    pthread_mutex_lock(&e2_agent_db->mutex);
+    LOG_I(E2_AGENT,"apply_max_cell_prb called, setting to %d\n",max_prb);
+    // note that this probably I'll need to protect it with a mutex
+    e2_agent_db->max_prb = max_prb;
+    pthread_mutex_unlock(&e2_agent_db->mutex);
 }
 
 void apply_ue_info(UeListM* ue_list){

@@ -13,11 +13,12 @@
 #include "common/utils/LOG/log.h"
 #include "e2_message_handlers.h"
 
-
 extern RAN_CONTEXT_t RC;
+
 
 int agent_task_created = 0;
 pthread_t heartbeat_thread; // heartbeat has a mutex to easily stop heartbeat messages if needed (just lock the mutex)
+e2_agent_databank_t* e2_agent_db = NULL;
 
 int e2_agent_init(){
     e2_agent_info_t* agent_info = malloc(sizeof(e2_agent_info_t));
@@ -56,6 +57,16 @@ int e2_agent_init(){
     agent_info->in_sockaddr.sin_family = AF_INET;
     agent_info->in_sockaddr.sin_addr.s_addr = INADDR_ANY;
     agent_info->in_sockaddr.sin_port = htons(E2AGENT_IN_PORT);
+
+    LOG_I(E2_AGENT, "Initializing data bank\n");
+    e2_agent_db = malloc(sizeof(e2_agent_databank_t));
+    if (pthread_mutex_init(&(e2_agent_db->mutex), NULL) != 0)
+    {
+        LOG_E(E2_AGENT,"Could not init db mutex\n");
+        return -1;
+    }
+    e2_agent_db->max_prb = -1;
+
 
     if (bind(agent_info->in_sockfd, (struct sockaddr *) &(agent_info->in_sockaddr), sizeof(agent_info->in_sockaddr)) != 0) {
         perror("Failed to bind in socket");

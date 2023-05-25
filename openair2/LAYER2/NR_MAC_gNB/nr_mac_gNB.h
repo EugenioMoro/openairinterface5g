@@ -862,6 +862,8 @@ typedef struct gNB_MAC_INST_s {
   int16_t frame;
   int16_t slot;
 
+  int max_prbs_allocable_dl;
+
 } gNB_MAC_INST;
 
 #endif /*__LAYER2_NR_MAC_GNB_H__ */

@@ -30,6 +30,17 @@ typedef struct e2_agent_info_t{
     pthread_mutex_t hb_mutex;
 } e2_agent_info_t;
 
+/*
+this struct will be globally accessible by anyone and it contains values coming from the xapp 
+to be asynchr. read by other parts of the code
+*/
+typedef struct e2_agent_databank{
+    int max_prb;
+    pthread_mutex_t mutex;
+} e2_agent_databank_t;
+
+extern e2_agent_databank_t* e2_agent_db;
+
 int e2_agent_init();
 
 void *e2_agent_task();
