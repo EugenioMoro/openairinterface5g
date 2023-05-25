@@ -2614,8 +2614,15 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
     UE->is_GBR = false;
   }
   ++temp_ue_cnt;
+
+  // init oran tbs and prb info
   UE->avg_tbs_1s_dl = 0;
   UE->avg_tbs_1s_ul = 0;
+  UE->avg_prbs_dl   = 0;
+  UE->avg_prbs_ul   = 0;
+  UE->avg_tbs_per_prb_dl = 0;
+  UE->avg_tbs_per_prb_ul = 0;
+
   return (UE);
 }
 

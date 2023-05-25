@@ -767,6 +767,12 @@ void pf_dl(module_id_t module_id,
     // update avg tbs dl
     const float s_coeff = 0.1F;
     iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff) + s_coeff*TBS;
+    // update avg assigned prbs in DL
+    iterator->UE->avg_prbs_dl = iterator->UE->avg_prbs_dl * (1-s_coeff) + s_coeff*rbSize;
+
+    // update average tbs per prb
+    iterator->UE->avg_tbs_per_prb_dl = iterator->UE->avg_tbs_per_prb_dl * (1-s_coeff) + s_coeff*(TBS/rbSize);
+
 
     //printf("%d\n", TBS);
 

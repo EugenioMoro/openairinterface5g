@@ -296,6 +296,15 @@ UeListM* get_ue_list(){
         ue_info_list[i]->has_dl_mac_buffer_occupation=1;
         ue_info_list[i]->dl_mac_buffer_occupation = sched_ctrl->num_total_bytes;
 
+        ue_info_list[i]->has_avg_prbs_dl = 1;
+        ue_info_list[i]->avg_prbs_dl = curr_ue->avg_prbs_dl;
+
+        ue_info_list[i]->has_mcs = 1;
+        ue_info_list[i]->mcs = curr_ue->UE_sched_ctrl.sched_pdsch.mcs;
+
+        ue_info_list[i]->has_avg_tbs_per_prb_dl = 1;
+        ue_info_list[i]->avg_tbs_per_prb_dl = curr_ue->avg_tbs_per_prb_dl;
+
     }
     // add a null terminator to the list
     ue_info_list[num_ues] = NULL;

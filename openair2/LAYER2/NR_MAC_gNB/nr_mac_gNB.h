@@ -717,6 +717,12 @@ typedef struct {
   float avg_tbs_1s_dl;
   float avg_tbs_1s_ul;
 
+  float avg_prbs_dl;
+  float avg_prbs_ul;
+
+  float avg_tbs_per_prb_dl;
+  float avg_tbs_per_prb_ul;
+
 } NR_UE_info_t;
 
 typedef struct {
