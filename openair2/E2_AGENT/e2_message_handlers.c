@@ -24,9 +24,9 @@ void handle_subscription(RANMessage* in_mess){
 this function just basically prints out the parameters in the request and passes the in_mess to the response generator
 */
 void handle_indication_request(RANMessage* in_mess,int out_socket, sockaddr_in peeraddr){
-    LOG_I(E2_AGENT,"Indication request for %lu parameters:\n", in_mess->ran_indication_request->n_target_params);
+    LOG_D(E2_AGENT,"Indication request for %lu parameters:\n", in_mess->ran_indication_request->n_target_params);
     for(int par_i=0; par_i<in_mess->ran_indication_request->n_target_params; par_i++){
-        LOG_I(E2_AGENT,"\tParameter id %d requested (a.k.a %s)\n",\
+        LOG_D(E2_AGENT,"\tParameter id %d requested (a.k.a %s)\n",\
         in_mess->ran_indication_request->target_params[par_i],\
         get_enum_name(in_mess->ran_indication_request->target_params[par_i]));
     }
@@ -68,12 +68,12 @@ void build_indication_response(RANMessage* in_mess, int out_socket, sockaddr_in 
     buflen = ran_indication_response__get_packed_size(&rsp);
     buf = malloc(buflen);
     ran_indication_response__pack(&rsp,buf);
-    LOG_I(E2_AGENT,"Sending indication response\n");
+    LOG_D(E2_AGENT,"Sending indication response\n");
     unsigned slen = sizeof(servaddr);
     int rev = sendto(out_socket, (const char *)buf, buflen,
                      MSG_CONFIRM, (const struct sockaddr *) &servaddr,
                      slen);
-    LOG_I(E2_AGENT,"Sent %d bytes, buflen was %u\n",rev, buflen);
+    LOG_D(E2_AGENT,"Sent %d bytes, buflen was %u\n",rev, buflen);
 
     // free map and buffer (rsp not freed because in the stack)
     free_ran_param_map(map);
@@ -114,9 +114,9 @@ void free_ran_param_map(RANParamMapEntry **map){
 
 void handle_control(RANMessage* in_mess){
     // loop target params and apply
-    LOG_I(E2_AGENT,"handle_control called\n");
+    LOG_D(E2_AGENT,"handle_control called\n");
     for(int i=0; i<in_mess->ran_control_request->n_target_param_map; i++){
-        LOG_I(E2_AGENT,"Applying target parameter %s\n",\
+        LOG_D(E2_AGENT,"Applying target parameter %s\n",\
         get_enum_name(in_mess->ran_control_request->target_param_map[i]->key));
         ran_write(in_mess->ran_control_request->target_param_map[i]);
     }
@@ -141,7 +141,7 @@ const char* get_enum_name(RANParameter ran_par_enum){
 }
 
 void ran_write(RANParamMapEntry* target_param_map_entry){
-    LOG_I(E2_AGENT,"ran_write called\n");
+    LOG_D(E2_AGENT,"ran_write called\n");
     switch (target_param_map_entry->key)
     {
         case RAN_PARAMETER__GNB_ID:
@@ -163,17 +163,17 @@ void ran_write(RANParamMapEntry* target_param_map_entry){
 
 void apply_max_cell_prb(int max_prb){
     pthread_mutex_lock(&e2_agent_db->mutex);
-    LOG_I(E2_AGENT,"apply_max_cell_prb called, setting to %d\n",max_prb);
+    LOG_D(E2_AGENT,"apply_max_cell_prb called, setting to %d\n",max_prb);
     // note that this probably I'll need to protect it with a mutex
     e2_agent_db->max_prb = max_prb;
     pthread_mutex_unlock(&e2_agent_db->mutex);
 }
 
 void apply_ue_info(UeListM* ue_list){
-    LOG_I(E2_AGENT,"in apply_ue_info, ue list size %d\n", ue_list->n_ue_info);
+    LOG_D(E2_AGENT,"in apply_ue_info, ue list size %d\n", ue_list->n_ue_info);
     // loop the ues and apply what needed to each
     for(int ue=0; ue<ue_list->n_ue_info; ue++){
-        LOG_I(E2_AGENT,"in apply_ue_info loop ue %d\n",ue);
+        LOG_D(E2_AGENT,"in apply_ue_info loop ue %d\n",ue);
         // apply gbr
         set_gbr_ue(ue_list->ue_info[ue]->rnti,
             ue_list->ue_info[ue]->tbs_dl_toapply,
@@ -185,7 +185,7 @@ void apply_ue_info(UeListM* ue_list){
 }
 
 void set_gbr_ue(rnti_t rnti, float tbs_dl, float tbs_ul, bool is_GBR){
-    LOG_I(E2_AGENT,"in set_gbr_ue\n");
+    LOG_D(E2_AGENT,"in set_gbr_ue\n");
     // acquire mac layer mutex 
     NR_UEs_t *UE_info_gnb = &RC.nrmac[0]->UE_info;
     pthread_mutex_lock(&UE_info_gnb->mutex);
@@ -194,9 +194,9 @@ void set_gbr_ue(rnti_t rnti, float tbs_dl, float tbs_ul, bool is_GBR){
     NR_UE_info_t **UE_list = UE_info_gnb->list;
     bool rnti_not_found = true;
     UE_iterator(UE_list, UE) {
-        LOG_I(E2_AGENT,"in set_gbr_ue ue iterator\n");
+        LOG_D(E2_AGENT,"in set_gbr_ue ue iterator\n");
         if(UE->rnti == rnti){
-            LOG_I(E2_AGENT,"in set_gbr_ue rnti found\n");
+            LOG_D(E2_AGENT,"in set_gbr_ue rnti found\n");
             // set gbr
             UE->is_GBR = is_GBR;
 
@@ -236,26 +236,26 @@ void handle_master_message(void* buf, int buflen, int out_socket, struct sockadd
         LOG_E(E2_AGENT,"\n");
         return;
     }
-    LOG_I(E2_AGENT,"ran message id %d\n", in_mess->msg_type);
+    LOG_D(E2_AGENT,"ran message id %d\n", in_mess->msg_type);
     switch(in_mess->msg_type){
         case RAN_MESSAGE_TYPE__SUBSCRIPTION:
-            LOG_I(E2_AGENT,"Subcription message received\n");
+            LOG_D(E2_AGENT,"Subcription message received\n");
             handle_subscription(in_mess);
             break;
         case RAN_MESSAGE_TYPE__INDICATION_REQUEST:
-            LOG_I(E2_AGENT,"Indication request message received\n");
+            LOG_D(E2_AGENT,"Indication request message received\n");
             handle_indication_request(in_mess, out_socket, servaddr);
             break;
         case RAN_MESSAGE_TYPE__INDICATION_RESPONSE:
-            LOG_I(E2_AGENT,"Indication response message received\n");
+            LOG_D(E2_AGENT,"Indication response message received\n");
             build_indication_response(in_mess, out_socket, servaddr);
             break;
         case RAN_MESSAGE_TYPE__CONTROL:
-            LOG_I(E2_AGENT,"Control message received\n");
+            LOG_D(E2_AGENT,"Control message received\n");
             handle_control(in_mess);
             break;
         default:
-            LOG_I(E2_AGENT,"Unrecognized message type\n");
+            LOG_D(E2_AGENT,"Unrecognized message type\n");
             ran_message__free_unpacked(in_mess,NULL);
             break;
     }
@@ -359,7 +359,7 @@ void ran_read(RANParameter ran_par_enum, RANParamMapEntry* map_entry){
             map_entry->ue_list = get_ue_list();
             break;
         default:
-            LOG_I(E2_AGENT,"unrecognized param %d\n",ran_par_enum);
+            LOG_D(E2_AGENT,"unrecognized param %d\n",ran_par_enum);
             assert(0!=0);
     }
 }

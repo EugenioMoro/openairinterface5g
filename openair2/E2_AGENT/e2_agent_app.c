@@ -22,7 +22,7 @@ e2_agent_databank_t* e2_agent_db = NULL;
 
 int e2_agent_init(){
     e2_agent_info_t* agent_info = malloc(sizeof(e2_agent_info_t));
-    LOG_I(E2_AGENT,"Initializing E2 agent\n");
+    LOG_D(E2_AGENT,"Initializing E2 agent\n");
 
     // heartbeat thread and mutex init
     if(pthread_create(&heartbeat_thread,NULL,&e2_heartbeat, agent_info)) {
@@ -58,7 +58,7 @@ int e2_agent_init(){
     agent_info->in_sockaddr.sin_addr.s_addr = INADDR_ANY;
     agent_info->in_sockaddr.sin_port = htons(E2AGENT_IN_PORT);
 
-    LOG_I(E2_AGENT, "Initializing data bank\n");
+    LOG_D(E2_AGENT, "Initializing data bank\n");
     e2_agent_db = malloc(sizeof(e2_agent_databank_t));
     if (pthread_mutex_init(&(e2_agent_db->mutex), NULL) != 0)
     {
@@ -72,7 +72,7 @@ int e2_agent_init(){
         perror("Failed to bind in socket");
         exit(EXIT_FAILURE);
     }
-    LOG_I(E2_AGENT, "Agent waiting for UDP datagrams\n");
+    LOG_D(E2_AGENT, "Agent waiting for UDP datagrams\n");
 
     // create itti task
     if(itti_create_task(TASK_E2_AGENT,e2_agent_task, agent_info) < 0){
@@ -102,7 +102,7 @@ void *e2_agent_task(void* args_p){
     INFINITE_LOOP {
         /* Wait for a client */
         rcv_len = recvfrom(e2_info->in_sockfd, recv_buf, E2AGENT_MAX_BUF_SIZE, 0, (struct sockaddr *) &(e2_info->in_sockaddr), &slen);
-        LOG_I(E2_AGENT, "Received %d bytes\n", rcv_len);
+        LOG_D(E2_AGENT, "Received %d bytes\n", rcv_len);
         handle_master_message(recv_buf, rcv_len, e2_info->out_sockfd, e2_info->out_sockaddr);
     }
 
