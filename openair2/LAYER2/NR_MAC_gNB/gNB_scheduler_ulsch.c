@@ -39,6 +39,8 @@
 
 //#define SRS_IND_DEBUG
 
+#define OVERRIDE_GBR 1
+
 const int get_ul_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
 
   /* there is a mixed slot only when in TDD */
@@ -1683,7 +1685,7 @@ void pf_ul(module_id_t module_id,
     float coeff_ue = (float) tbs / UE->ul_thr_ue;
     LOG_D(NR_MAC,"rnti %04x b %d, ul_thr_ue %f, tbs %d, coeff_ue %f\n",
           UE->rnti, b, UE->ul_thr_ue, tbs, coeff_ue);
-    if (UE->is_GBR){
+    if (UE->is_GBR && !OVERRIDE_GBR){
       UE_sched[curUE].coef = __FLT_MAX__;
     } else {
     UE_sched[curUE].coef=coeff_ue;
@@ -1758,7 +1760,7 @@ void pf_ul(module_id_t module_id,
     uint16_t rbSize = 0;
     uint32_t TBS = 0;
     uint32_t bytes_to_schedule;
-    if (iterator->UE->is_GBR){
+    if (iterator->UE->is_GBR && !OVERRIDE_GBR){
       bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_ul;
     } else {
       bytes_to_schedule = B;
