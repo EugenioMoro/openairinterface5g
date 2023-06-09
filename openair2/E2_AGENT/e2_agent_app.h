@@ -36,6 +36,7 @@ to be asynchr. read by other parts of the code
 */
 typedef struct e2_agent_databank{
     int max_prb;
+    int true_gbr;
     pthread_mutex_t mutex;
 } e2_agent_databank_t;
 

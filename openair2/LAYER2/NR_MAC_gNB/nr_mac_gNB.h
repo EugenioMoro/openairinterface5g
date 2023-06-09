@@ -862,6 +862,7 @@ typedef struct gNB_MAC_INST_s {
   int16_t frame;
   int16_t slot;
 
+  // following values are O-RAN controlled
   int max_prbs_allocable_dl;
 
 } gNB_MAC_INST;

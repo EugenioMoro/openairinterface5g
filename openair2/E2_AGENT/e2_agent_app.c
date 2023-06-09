@@ -66,6 +66,7 @@ int e2_agent_init(){
         return -1;
     }
     e2_agent_db->max_prb = -1;
+    e2_agent_db->true_gbr = 0;
 
 
     if (bind(agent_info->in_sockfd, (struct sockaddr *) &(agent_info->in_sockaddr), sizeof(agent_info->in_sockaddr)) != 0) {

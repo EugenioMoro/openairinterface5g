@@ -56,7 +56,6 @@
 #define WORD 32
 //#define SIZE_OF_POINTER sizeof (void *)
 
-#define TRUE_GBR_SCHEDULER 0 // 0 is false, >0 is true
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
 
@@ -739,7 +738,7 @@ void pf_dl(module_id_t module_id,
 
     
     if(iterator->UE->is_GBR){
-      if(TRUE_GBR_SCHEDULER){
+      if(e2_agent_db->true_gbr){ // we are not protecting with a mutex since we are just reading an int, probably not 100% safe though, since the int is in a struct
         /* in a true gbr scheduler, if the bytes in buffer are less than the guaranteed tbs
         then we simply schedule those bytes. If they are more, then */
         bytes_to_schedule = min(iterator->UE->guaranteed_tbs_bytes_dl,sched_ctrl->num_total_bytes + oh);

@@ -156,6 +156,9 @@ void ran_write(RANParamMapEntry* target_param_map_entry){
         case RAN_PARAMETER__MAX_PRB:
             apply_max_cell_prb(target_param_map_entry->int64_value);
             break;
+        case RAN_PARAMETER__USE_TRUE_GBR:
+            apply_true_gbr(target_param_map_entry->int64_value);
+            break;
         default:
             LOG_E(E2_AGENT,"ERROR: cannot write RAN, unrecognized target param %d\n", target_param_map_entry->key);
     }
@@ -166,6 +169,14 @@ void apply_max_cell_prb(int max_prb){
     LOG_D(E2_AGENT,"apply_max_cell_prb called, setting to %d\n",max_prb);
     // note that this probably I'll need to protect it with a mutex
     e2_agent_db->max_prb = max_prb;
+    pthread_mutex_unlock(&e2_agent_db->mutex);
+}
+
+void apply_true_gbr(int true_gbr){
+    pthread_mutex_lock(&e2_agent_db->mutex);
+    LOG_D(E2_AGENT,"apply_true_gbr called, setting to %d\n",true_gbr);
+    // note that this probably I'll need to protect it with a mutex
+    e2_agent_db->true_gbr = true_gbr;
     pthread_mutex_unlock(&e2_agent_db->mutex);
 }
 
