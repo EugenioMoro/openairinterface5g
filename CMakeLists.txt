@@ -2237,7 +2237,6 @@ target_link_libraries(lte-uesoftmodem PRIVATE
 
 # nr-softmodem
 ###################################################
-
 add_executable(nr-softmodem
   ${rrc_h}
   ${nr_rrc_h}
@@ -2258,6 +2257,12 @@ add_executable(nr-softmodem
   ${OPENAIR1_DIR}/PHY/TOOLS/phy_scope_interface.c
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
+  ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.c
+  ${OPENAIR2_DIR}/E2_AGENT/e2_agent_app.h
+  ${OPENAIR2_DIR}/E2_AGENT/e2_message_handlers.c
+  ${OPENAIR2_DIR}/E2_AGENT/e2_message_handlers.h
+  ${OPENAIR2_DIR}/E2_AGENT/oai-oran-protolib/builds/ran_messages.pb-c.c
+  ${OPENAIR2_DIR}/E2_AGENT/oai-oran-protolib/builds/ran_messages.pb-c.h
   )
 
 target_link_libraries(nr-softmodem PRIVATE
@@ -2267,11 +2272,12 @@ target_link_libraries(nr-softmodem PRIVATE
   ngap s1ap L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU SIMU_ETH
   x2ap f1ap m2ap m3ap e1ap
   -Wl,--end-group z dl)
-
-target_link_libraries(nr-softmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${ATLAS_LIBRARIES})
+target_include_directories(nr-softmodem PRIVATE ${OPENAIR2_DIR}/E2_AGENT)
+include_directories(${OPENAIR2_DIR}/E2_AGENT)
+set(PROTOBUF_LIB "protobuf-c")
+target_link_libraries(nr-softmodem PRIVATE pthread m CONFIG_LIB rt crypt ${CRYPTO_LIBRARIES} ${OPENSSL_LIBRARIES} sctp ${ATLAS_LIBRARIES} ${PROTOBUF_LIB})
 target_link_libraries(nr-softmodem PRIVATE ${T_LIB})
 target_link_libraries(nr-softmodem PRIVATE asn1_nr_rrc_hdrs asn1_lte_rrc_hdrs)
-
 add_dependencies(nr-softmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc)
 
 if (ENABLE_LDPC_T1)

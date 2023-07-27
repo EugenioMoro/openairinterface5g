@@ -81,6 +81,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "gnb_config.h"
 #include "openair2/E1AP/e1ap_common.h"
 #include "openair2/E1AP/e1ap_api.h"
+#include <E2_AGENT/e2_agent_app.h>
 
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
@@ -637,6 +638,7 @@ int main( int argc, char **argv ) {
   // don't create if node doesn't connect to RRC/S1/GTP
   if (NFAPI_MODE != NFAPI_MODE_PNF) {
     int ret = create_gNB_tasks();
+    e2_agent_init();
     AssertFatal(ret == 0, "cannot create ITTI tasks\n");
   }
 

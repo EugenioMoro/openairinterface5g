@@ -44,7 +44,8 @@
 /*Softmodem params*/
 #include "executables/softmodem-common.h"
 #include "../../../nfapi/oai_integration/vendor_ext.h"
-
+/*E2 AGENT*/
+#include "E2_AGENT/e2_agent_app.h"
 ////////////////////////////////////////////////////////
 /////* DLSCH MAC PDU generation (6.1.2 TS 38.321) */////
 ////////////////////////////////////////////////////////
@@ -651,6 +652,11 @@ void pf_dl(module_id_t module_id,
             coeff_ue);
       /* Create UE_sched list for UEs eligible for new transmission*/
       UE_sched[curUE].coef=coeff_ue;
+
+      if(UE->is_GBR){
+        UE_sched[curUE].coef=__FLT_MAX__;
+      }
+
       UE_sched[curUE].UE=UE;
       curUE++;
     }
@@ -759,13 +765,27 @@ void pf_dl(module_id_t module_id,
     // PDUs, we replace with 3 * numPDUs
     const int oh = 3 * 4 + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
     //const int oh = 3 * sched_ctrl->dl_pdus_total + 2 * (frame == (sched_ctrl->ta_frame + 10) % 1024);
+    uint32_t bytes_to_schedule;
+    if(iterator->UE->is_GBR){
+      if(e2_agent_db->true_gbr){ // we are not protecting with a mutex since we are just reading an int, probably not 100% safe though, since the int is in a struct
+        /* in a true gbr scheduler, if the bytes in buffer are less than the guaranteed tbs
+        then we simply schedule those bytes. If they are more, then */
+        bytes_to_schedule = min(iterator->UE->guaranteed_tbs_bytes_dl,sched_ctrl->num_total_bytes + oh);
+      } else {
+        bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_dl;
+      }
+    } else {
+      bytes_to_schedule = sched_ctrl->num_total_bytes + oh;
+    }
+
+
     nr_find_nb_rb(sched_pdsch->Qm,
                   sched_pdsch->R,
                   1, // no transform precoding for DL
                   sched_pdsch->nrOfLayers,
                   tda_info->nrOfSymbols,
                   sched_pdsch->dmrs_parms.N_PRB_DMRS * sched_pdsch->dmrs_parms.N_DMRS_SLOT,
-                  sched_ctrl->num_total_bytes + oh,
+                  bytes_to_schedule,
                   min_rbSize,
                   max_rbSize,
                   &TBS,
@@ -775,6 +795,14 @@ void pf_dl(module_id_t module_id,
     sched_pdsch->tb_size = TBS;
     /* transmissions: directly allocate */
     n_rb_sched -= sched_pdsch->rbSize;
+
+    sched_pdsch->tb_size = TBS;
+    // update avg tbs dl
+    const float s_coeff = 0.1F;
+    iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff) + s_coeff*TBS;
+    // update avg assigned prbs in DL
+    iterator->UE->avg_prbs_dl = iterator->UE->avg_prbs_dl * (1-s_coeff) + s_coeff*rbSize;
+    iterator->UE->avg_tbs_per_prb_dl = iterator->UE->avg_tbs_per_prb_dl * (1-s_coeff) + s_coeff*(TBS/rbSize);
 
     for (int rb = 0; rb < sched_pdsch->rbSize; rb++)
       rballoc_mask[rb + sched_pdsch->rbStart] ^= slbitmap;
@@ -806,8 +834,16 @@ void nr_fr1_dlsch_preprocessor(module_id_t module_id, frame_t frame, sub_frame_t
   const int startSymbolAndLength = tdaList->list.array[tda]->startSymbolAndLength;
   SLIV2SL(startSymbolAndLength, &startSymbolIndex, &nrOfSymbols);
 
-  const uint16_t bwpSize = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_size : current_BWP->BWPSize;
+  uint16_t bwpSize = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_size : current_BWP->BWPSize;
   const uint16_t BWPStart = coresetid == 0 ? RC.nrmac[module_id]->cset0_bwp_start : current_BWP->BWPStart;
+
+  pthread_mutex_lock(&e2_agent_db->mutex);
+  // LOG_E(NR_MAC, "xapp says %d\n", e2_agent_db->max_prb);
+  if (e2_agent_db->max_prb > -1){
+    bwpSize = min(bwpSize, e2_agent_db->max_prb);
+    // LOG_E(NR_MAC, "Setting bwpsize to %u\n", bwpSize);
+  }
+  pthread_mutex_unlock(&e2_agent_db->mutex);
 
   const uint16_t slbitmap = SL_to_bitmap(startSymbolIndex, nrOfSymbols);
   uint16_t *vrb_map = RC.nrmac[module_id]->common_channels[CC_id].vrb_map;

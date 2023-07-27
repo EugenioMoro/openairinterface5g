@@ -663,6 +663,19 @@ typedef struct {
   uint32_t ra_timer;
   float ul_thr_ue;
   float dl_thr_ue;
+  
+  bool is_GBR; 
+  uint32_t guaranteed_tbs_bytes_ul;
+  uint32_t guaranteed_tbs_bytes_dl;
+  float avg_tbs_1s_dl;
+  float avg_tbs_1s_ul;
+  
+  float avg_prbs_dl;
+  float avg_prbs_ul;
+
+  float avg_tbs_per_prb_dl;
+  float avg_tbs_per_prb_ul;
+
 } NR_UE_info_t;
 
 typedef struct {

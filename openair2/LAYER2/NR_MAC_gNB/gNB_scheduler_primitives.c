@@ -2305,6 +2305,9 @@ void reset_srs_stats(NR_UE_info_t *UE) {
   }
 }
 
+uint8_t temp_ue_cnt=0;
+bool gbr_experiments = false;
+
 //------------------------------------------------------------------------------
 NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConfig_t *CellGroup)
 {
@@ -2391,6 +2394,22 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
 
   LOG_D(NR_MAC, "Add NR rnti %x\n", rntiP);
   dump_nr_list(UE_info->list);
+ if(temp_ue_cnt == 0 && gbr_experiments){
+      UE->is_GBR = true;
+    UE->guaranteed_tbs_bytes_dl = 1500;
+    UE->guaranteed_tbs_bytes_ul = 500;
+    LOG_I(NR_MAC, "This ue is gbr\n");
+  } else {
+    UE->is_GBR = false;
+  }
+  ++temp_ue_cnt;
+  
+  UE->avg_tbs_1s_dl = 0;
+  UE->avg_tbs_1s_ul = 0;
+  UE->avg_prbs_dl   = 0;
+  UE->avg_prbs_ul   = 0;
+  UE->avg_tbs_per_prb_dl = 0;
+  UE->avg_tbs_per_prb_ul = 0;
   return (UE);
 }
 
