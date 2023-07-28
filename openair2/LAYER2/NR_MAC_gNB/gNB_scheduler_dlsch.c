@@ -558,7 +558,7 @@ void pf_dl(module_id_t module_id,
            int n_rb_sched,
            uint16_t *rballoc_mask)
 {
-
+  const float s_coeff = 0.1F;
   gNB_MAC_INST *mac = RC.nrmac[module_id];
   NR_ServingCellConfigCommon_t *scc=mac->common_channels[0].ServingCellConfigCommon;
   // UEs that could be scheduled
@@ -600,6 +600,9 @@ void pf_dl(module_id_t module_id,
               UE->rnti,
               frame,
               slot);
+        UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
+        UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
+        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
         continue;
       }
       /* reduce max_num_ue once we are sure UE can be allocated, i.e., has CCE */
@@ -614,12 +617,19 @@ void pf_dl(module_id_t module_id,
               UE->rnti,
               frame,
               slot);
+                UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
+        UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
+        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
         continue;
       }
 
       /* Check DL buffer and skip this UE if no bytes and no TA necessary */
-      if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024)
+      if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024){
+        UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
+        UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
+        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
         continue;
+      }
 
       /* Calculate coeff */
       const NR_bler_options_t *bo = &mac->dl_bler;
@@ -668,7 +678,16 @@ void pf_dl(module_id_t module_id,
   const int min_rbSize = 5;
 
   /* Loop UE_sched to find max coeff and allocate transmission */
-  while (remainUEs> 0 && n_rb_sched >= min_rbSize && iterator->UE != NULL) {
+  //while (remainUEs> 0 && n_rb_sched >= min_rbSize && iterator->UE != NULL) {
+    while (remainUEs> 0 && iterator->UE != NULL) {
+      if(n_rb_sched < min_rbSize){
+        // no more prbs to be scheduled, update the counters and continue to next ue, which still won't be scheduled 
+        iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff);
+        iterator->UE->avg_prbs_dl = iterator->UE->avg_prbs_dl * (1-s_coeff);
+        iterator->UE->avg_tbs_per_prb_dl = iterator->UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        iterator++;
+        continue;
+      }
 
     NR_UE_sched_ctrl_t *sched_ctrl = &iterator->UE->UE_sched_ctrl;
     const uint16_t rnti = iterator->UE->rnti;
@@ -798,7 +817,7 @@ void pf_dl(module_id_t module_id,
 
     sched_pdsch->tb_size = TBS;
     // update avg tbs dl
-    const float s_coeff = 0.1F;
+
     iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff) + s_coeff*TBS;
     // update avg assigned prbs in DL
     iterator->UE->avg_prbs_dl = iterator->UE->avg_prbs_dl * (1-s_coeff) + s_coeff*rbSize;

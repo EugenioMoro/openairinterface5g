@@ -314,6 +314,7 @@ UeListM* get_ue_list(){
         // add tbs info
         ue_info_list[i]->has_tbs_avg_dl = 1;
         ue_info_list[i]->tbs_avg_dl = curr_ue->avg_tbs_1s_dl;
+        //ue_info_list[i]->tbs_avg_dl = curr_ue->dl_thr_ue;
         ue_info_list[i]->has_tbs_avg_ul = 1;
         ue_info_list[i]->tbs_avg_ul = curr_ue->avg_tbs_1s_ul;
         
