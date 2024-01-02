@@ -600,15 +600,24 @@ void pf_dl(module_id_t module_id,
               UE->rnti,
               frame,
               slot);
+
+        // update averages for this ue since it won't be scheduled in this round
         UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
         UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
-        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        //UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        // also update the avg rtx prbs (zero in this round)
+         UE->avg_prbs_dl_rtx = UE->avg_prbs_dl_rtx * (1-s_coeff);
         continue;
+      } else {
+        // rtx for this ue has been scheduled, even if it can be zero, so we need to change the average
+        UE->avg_prbs_dl_rtx = UE->avg_prbs_dl_rtx * (1-s_coeff)  + s_coeff * UE->UE_sched_ctrl.harq_processes[sched_pdsch->dl_harq_pid].sched_pdsch.rbSize;
       }
       /* reduce max_num_ue once we are sure UE can be allocated, i.e., has CCE */
       remainUEs--;
 
     } else {
+      // no harq proc active, update average
+      UE->avg_prbs_dl_rtx = UE->avg_prbs_dl_rtx * (1-s_coeff);
       /* skip this UE if there are no free HARQ processes. This can happen e.g.
        * if the UE disconnected in L2sim, in which case the gNB is not notified
        * (this can be considered a design flaw) */
@@ -619,7 +628,7 @@ void pf_dl(module_id_t module_id,
               slot);
                 UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
         UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
-        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        //UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
         continue;
       }
 
@@ -627,7 +636,7 @@ void pf_dl(module_id_t module_id,
       if (sched_ctrl->num_total_bytes == 0 && frame != (sched_ctrl->ta_frame + 10) % 1024){
         UE->avg_tbs_1s_dl = UE->avg_tbs_1s_dl * (1-s_coeff);
         UE->avg_prbs_dl = UE->avg_prbs_dl * (1-s_coeff);
-        UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        //UE->avg_tbs_per_prb_dl = UE->avg_tbs_per_prb_dl * (1-s_coeff);
         continue;
       }
 
@@ -684,7 +693,7 @@ void pf_dl(module_id_t module_id,
         // no more prbs to be scheduled, update the counters and continue to next ue, which still won't be scheduled 
         iterator->UE->avg_tbs_1s_dl = iterator->UE->avg_tbs_1s_dl * (1-s_coeff);
         iterator->UE->avg_prbs_dl = iterator->UE->avg_prbs_dl * (1-s_coeff);
-        iterator->UE->avg_tbs_per_prb_dl = iterator->UE->avg_tbs_per_prb_dl * (1-s_coeff);
+        //iterator->UE->avg_tbs_per_prb_dl = iterator->UE->avg_tbs_per_prb_dl * (1-s_coeff);
         iterator++;
         continue;
       }

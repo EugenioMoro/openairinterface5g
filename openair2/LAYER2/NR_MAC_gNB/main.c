@@ -130,6 +130,11 @@ size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset
                        stats->pucch0_DTX,
                        sched_ctrl->dl_bler_stats.bler,
                        sched_ctrl->dl_bler_stats.mcs);
+    output += snprintf(output,
+                       end - output,
+                       "Avg DL PRBs: %.5f - Avg DL RTX PRBs: %.5f\n",
+                       UE->avg_prbs_dl,
+                       UE->avg_prbs_dl_rtx);
     if (reset_rsrp) {
       stats->num_rsrp_meas = 0;
       stats->cumul_rsrp = 0;

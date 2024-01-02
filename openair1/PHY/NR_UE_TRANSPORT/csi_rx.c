@@ -965,8 +965,8 @@ int nr_ue_csi_rs_procedures(PHY_VARS_NR_UE *ue, UE_nr_rxtx_proc_t *proc, c16_t r
 
   nr_csi_rs_cqi_estimation(precoded_sinr_dB, &cqi);
 
-  LOG_I(NR_PHY, "RSRP = %i dBm, RI = %i, i1 = %i.%i.%i, i2 = %i, SINR = %i dB, CQI = %i\n",
-        rsrp_dBm, rank_indicator+1, i1[0], i1[1], i1[2], i2[0], precoded_sinr_dB, cqi);
+//  LOG_I(NR_PHY, "RSRP = %i dBm, RI = %i, i1 = %i.%i.%i, i2 = %i, SINR = %i dB, CQI = %i\n",
+//        rsrp_dBm, rank_indicator+1, i1[0], i1[1], i1[2], i2[0], precoded_sinr_dB, cqi);
 
   // Send CSI measurements to MAC
   fapi_nr_csirs_measurements_t csirs_measurements;

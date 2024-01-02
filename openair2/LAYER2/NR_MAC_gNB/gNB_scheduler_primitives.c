@@ -2404,12 +2404,15 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
   }
   ++temp_ue_cnt;
   
+  // init values served to xApps by the E2 Agent
   UE->avg_tbs_1s_dl = 0;
   UE->avg_tbs_1s_ul = 0;
   UE->avg_prbs_dl   = 0;
   UE->avg_prbs_ul   = 0;
   UE->avg_tbs_per_prb_dl = 0;
   UE->avg_tbs_per_prb_ul = 0;
+  UE->avg_prbs_dl_rtx = 0;
+
   return (UE);
 }
 

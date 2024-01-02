@@ -676,6 +676,9 @@ typedef struct {
   float avg_tbs_per_prb_dl;
   float avg_tbs_per_prb_ul;
 
+  // average prbs used for DL retransmissions
+  float avg_prbs_dl_rtx;
+
 } NR_UE_info_t;
 
 typedef struct {
