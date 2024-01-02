@@ -651,7 +651,8 @@ void pf_dl(module_id_t module_id,
       else
         sched_pdsch->mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->dl_bler_stats, max_mcs, frame);
       if (UE->mt_mode < 1){
-        sched_pdsch->mcs = max(sched_pdsch->mcs, MAX_NON_MT_MCS);
+        //LOG_I(NR_MAC, "ue is not mt\n");
+        sched_pdsch->mcs = min(sched_pdsch->mcs, MAX_NON_MT_MCS);
       }
       sched_pdsch->nrOfLayers = get_dl_nrOfLayers(sched_ctrl, current_BWP->dci_format);
       sched_pdsch->pm_index = mac->identity_pm ? 0 : get_pm_index(UE, sched_pdsch->nrOfLayers, mac->xp_pdsch_antenna_ports);

@@ -2198,24 +2198,6 @@ rrc_gNB_decode_dcch(
         }
         LOG_I(NR_RRC, "got UE capabilities for UE %lx\n", ctxt_pP->rntiMaybeUEid);
         int eutra_index = -1;
-        NR_BandNR_t *bandNRinfo = ue_context_p->ue_context.UE_Capability_nr->rf_Parameters.supportedBandListNR.list.array[0];
-         if (bandNRinfo->bandNR == 2){
-          bandNRinfo->bandNR = 1;
-          LOG_E(NR_RRC, "UE %x is mt\n", ctxt_pP->rntiMaybeUEid);
-          NR_UE_info_t* UE_list = &RC.nrmac[ctxt_pP->module_id]->UE_info.list;
-          bool uefound = false;
-          UE_iterator(UE_list, UE){
-            if(UE->rnti == ctxt_pP->rntiMaybeUEid){
-              UE->mt_mode = 1;
-              LOG_I(NR_RRC, "UE %x mt prop set in sched info\n", ctxt_pP->rntiMaybeUEid);
-              uefound = true;
-            }
-          }
-          if (!uefound){
-            LOG_E(NR_RRC, "UE not found while scanning to set mt flag\n");
-            assert(1==0);
-          }
-         }
 
         if( ul_dcch_msg->message.choice.c1->choice.ueCapabilityInformation->criticalExtensions.present ==
         NR_UECapabilityInformation__criticalExtensions_PR_ueCapabilityInformation ) {
@@ -2295,6 +2277,26 @@ rrc_gNB_decode_dcch(
 
           if(eutra_index == -1)
           break;
+      }
+      NR_BandNR_t *bandNRinfo = UE->UE_Capability_nr->rf_Parameters.supportedBandListNR.list.array[0];
+      // NR_BandNR_t *bandNRinfo = ue_context_p->ue_context.UE_Capability_nr->rf_Parameters.supportedBandListNR.list.array[0];
+      LOG_I(NR_RRC, "debug 1 \n");
+      if (bandNRinfo->bandNR == 2){
+        bandNRinfo->bandNR = 1;
+        LOG_E(NR_RRC, "UE %x is mt\n", ctxt_pP->rntiMaybeUEid);
+        NR_UE_info_t* UE_list = &RC.nrmac[ctxt_pP->module_id]->UE_info.list;
+        bool uefound = false;
+        UE_iterator(UE_list, UE){
+          if(UE->rnti == ctxt_pP->rntiMaybeUEid){
+            UE->mt_mode = 1;
+            LOG_I(NR_RRC, "UE %x mt prop set in sched info\n", ctxt_pP->rntiMaybeUEid);
+            uefound = true;
+          }
+        }
+        if (!uefound){
+          LOG_E(NR_RRC, "UE not found while scanning to set mt flag\n");
+          assert(1==0);
+        }
       }
       if (get_softmodem_params()->sa) {
           rrc_gNB_send_NGAP_UE_CAPABILITIES_IND(ctxt_pP,
