@@ -88,6 +88,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/GNB_APP/gnb_paramdef.h"
 
 extern const char *duplex_mode[];
+int mt_mode;
 THREAD_STRUCT thread_struct;
 nrUE_params_t nrUE_params;
 
@@ -293,6 +294,8 @@ void set_options(int CC_id, PHY_VARS_NR_UE *UE){
   UE->chest_time           = nrUE_params.chest_time;
   UE->no_timing_correction = nrUE_params.no_timing_correction;
   UE->timing_advance       = nrUE_params.timing_advance;
+  mt_mode = nrUE_params.mt_mode;
+  
 
   LOG_I(PHY,"Set UE_fo_compensation %d, UE_scan_carrier %d, UE_no_timing_correction %d \n, chest-freq %d, chest-time %d\n",
         UE->UE_fo_compensation, UE->UE_scan_carrier, UE->no_timing_correction, UE->chest_freq, UE->chest_time);
