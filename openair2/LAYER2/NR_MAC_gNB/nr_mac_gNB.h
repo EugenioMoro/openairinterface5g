@@ -679,6 +679,9 @@ typedef struct {
   // average prbs used for DL retransmissions
   float avg_prbs_dl_rtx;
 
+  // if this is an MT or not
+  int mt_mode;
+
 } NR_UE_info_t;
 
 typedef struct {

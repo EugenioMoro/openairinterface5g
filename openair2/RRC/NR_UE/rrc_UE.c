@@ -75,6 +75,8 @@
 #include "nr_nas_msg_sim.h"
 #include <openair2/RRC/NR/nr_rrc_proto.h>
 
+extern int mt_mode;
+
 NR_UE_RRC_INST_t *NR_UE_rrc_inst;
 /* NAS Attach request with IMSI */
 static const char  nr_nas_attach_req_imsi[] = {
@@ -2541,7 +2543,12 @@ nr_rrc_ue_process_ueCapabilityEnquiry(
     UE_Capability_nr = CALLOC(1,sizeof(NR_UE_NR_Capability_t));
     NR_BandNR_t *nr_bandnr;
     nr_bandnr  = CALLOC(1,sizeof(NR_BandNR_t));
-    nr_bandnr->bandNR = 1;
+    if (mt_mode > 0){
+      LOG_I(NR_RRC, "MT mode detected, encoding in UE CAP\n");
+      nr_bandnr->bandNR = 2;
+    } else {
+      nr_bandnr->bandNR = 1;
+    }
     asn1cSeqAdd(&UE_Capability_nr->rf_Parameters.supportedBandListNR.list,
                      nr_bandnr);
   }

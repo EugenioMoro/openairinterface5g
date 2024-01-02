@@ -54,6 +54,8 @@
 #define WORD 32
 //#define SIZE_OF_POINTER sizeof (void *)
 
+#define MAX_NON_MT_MCS 9
+
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot) {
 
   const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
@@ -648,6 +650,9 @@ void pf_dl(module_id_t module_id,
         sched_pdsch->mcs = max_mcs;
       else
         sched_pdsch->mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->dl_bler_stats, max_mcs, frame);
+      if (UE->mt_mode < 1){
+        sched_pdsch->mcs = max(sched_pdsch->mcs, MAX_NON_MT_MCS);
+      }
       sched_pdsch->nrOfLayers = get_dl_nrOfLayers(sched_ctrl, current_BWP->dci_format);
       sched_pdsch->pm_index = mac->identity_pm ? 0 : get_pm_index(UE, sched_pdsch->nrOfLayers, mac->xp_pdsch_antenna_ports);
       const uint8_t Qm = nr_get_Qm_dl(sched_pdsch->mcs, current_BWP->mcsTableIdx);

@@ -62,6 +62,7 @@
 //#define DEBUG_DCI
 
 extern RAN_CONTEXT_t RC;
+extern int mt_mode;
 
   // Note the 2 scs values in the table names represent resp. scs_common and pdcch_scs
 /// LUT for the number of symbols in the coreset indexed by coreset index (4 MSB rmsi_pdcch_config)
@@ -2412,6 +2413,7 @@ NR_UE_info_t *add_new_nr_ue(gNB_MAC_INST *nr_mac, rnti_t rntiP, NR_CellGroupConf
   UE->avg_tbs_per_prb_dl = 0;
   UE->avg_tbs_per_prb_ul = 0;
   UE->avg_prbs_dl_rtx = 0;
+  UE->mt_mode = 0;
 
   return (UE);
 }
